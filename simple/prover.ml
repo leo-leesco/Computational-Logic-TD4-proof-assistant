@@ -1,44 +1,27 @@
+open Expr
+
 type tvar = string
 (** Type variables. *)
 
 type var = string
 (** Term variables. *)
 
-(** Types. *)
-type typ =
-  | TVar of var
-  | Map of typ * typ
-  | Conj of typ * typ
-  | Disj of typ * typ
-  | True
-  | Empty
-
-type term =
-  | Var of var
-  | App of term * term
-  | Abs of var * typ * term
-  | Pair of term * term
-  | Fst of term
-  | Snd of term
-  | VarL of term * typ
-  | VarR of term * typ
-  | Case of term * term * term
-  | Unit
-  | EmptyCase of term * typ
+let ty_of_string s = Parser.ty Lexer.token (Lexing.from_string s)
+let tm_of_string s = Parser.tm Lexer.token (Lexing.from_string s)
 
 let rec string_of_ty ty =
   match ty with
   | TVar v -> v
-  | Map (t1, t2) -> "(" ^ string_of_ty t1 ^ " => " ^ string_of_ty t2 ^ ")"
-  | Conj (t1, t2) -> "(" ^ string_of_ty t1 ^ " /\\ " ^ string_of_ty t2 ^ ")"
-  | Disj (t1, t2) -> "(" ^ string_of_ty t1 ^ " \\/ " ^ string_of_ty t2 ^ ")"
+  | Imp (t1, t2) -> "(" ^ string_of_ty t1 ^ " => " ^ string_of_ty t2 ^ ")"
+  | And (t1, t2) -> "(" ^ string_of_ty t1 ^ " /\\ " ^ string_of_ty t2 ^ ")"
+  | Or (t1, t2) -> "(" ^ string_of_ty t1 ^ " \\/ " ^ string_of_ty t2 ^ ")"
   | True -> "\u{22a4}"
-  | Empty -> "\u{22a5}"
+  | False -> "\u{22a5}"
 
 let () =
   print_endline
-    (string_of_ty (Map (Map (TVar "A", TVar "B"), Map (TVar "A", TVar "C"))));
-  print_endline (string_of_ty (Conj (TVar "A", TVar "B")));
+    (string_of_ty (Imp (Imp (TVar "A", TVar "B"), Imp (TVar "A", TVar "C"))));
+  print_endline (string_of_ty (And (TVar "A", TVar "B")));
   print_endline (string_of_ty True)
 
 let rec string_of_tm tm =
@@ -64,41 +47,41 @@ let () =
     (string_of_tm
        (Abs
           ( "f",
-            Map (TVar "A", TVar "B"),
+            Imp (TVar "A", TVar "B"),
             Abs ("x", TVar "A", App (Var "f", Var "x")) )));
   print_endline (string_of_tm (Pair (Var "x", Var "y")));
   print_endline (string_of_tm Unit)
 
-type context = (var * typ) list
+type context = (var * ty) list
 
 exception Type_error
 
 let rec infer_type env t =
   match t with
   | Var x -> ( try List.assoc x env with Not_found -> raise Type_error)
-  | Abs (x, a, t) -> Map (a, infer_type ((x, a) :: env) t)
+  | Abs (x, a, t) -> Imp (a, infer_type ((x, a) :: env) t)
   | App (t, u) -> (
       match infer_type env t with
-      | Map (a, b) ->
+      | Imp (a, b) ->
           check_type env u a;
           b
       | _ -> raise Type_error)
-  | Pair (t1, t2) -> Conj (infer_type env t1, infer_type env t2)
-  | VarL (t, b) -> Disj (infer_type env t, b)
-  | VarR (t, a) -> Disj (a, infer_type env t)
+  | Pair (t1, t2) -> And (infer_type env t1, infer_type env t2)
+  | VarL (t, b) -> Or (infer_type env t, b)
+  | VarR (t, a) -> Or (a, infer_type env t)
   | Case (t, u, v) -> (
       match (infer_type env t, infer_type env u, infer_type env v) with
-      | Disj (a, b), Map (a', c1), Map (b', c2) when a = a' && b = b' && c1 = c2
+      | Or (a, b), Imp (a', c1), Imp (b', c2) when a = a' && b = b' && c1 = c2
         ->
           c1
       | _ -> raise Type_error)
   | Fst t -> (
-      match infer_type env t with Conj (t1, _) -> t1 | _ -> raise Type_error)
+      match infer_type env t with And (t1, _) -> t1 | _ -> raise Type_error)
   | Snd t -> (
-      match infer_type env t with Conj (_, t2) -> t2 | _ -> raise Type_error)
+      match infer_type env t with And (_, t2) -> t2 | _ -> raise Type_error)
   | Unit -> True
   | EmptyCase (t, a) -> (
-      match infer_type env t with Empty -> a | _ -> raise Type_error)
+      match infer_type env t with False -> a | _ -> raise Type_error)
 
 and check_type env t a = if infer_type env t <> a then raise Type_error
 
@@ -107,14 +90,14 @@ let () =
     infer_type []
       (Abs
          ( "f",
-           Map (TVar "A", TVar "B"),
+           Imp (TVar "A", TVar "B"),
            Abs
              ( "g",
-               Map (TVar "B", TVar "C"),
+               Imp (TVar "B", TVar "C"),
                Abs ("x", TVar "A", App (Var "g", App (Var "f", Var "x"))) ) ))
-    = Map
-        ( Map (TVar "A", TVar "B"),
-          Map (Map (TVar "B", TVar "C"), Map (TVar "A", TVar "C")) ));
+    = Imp
+        ( Imp (TVar "A", TVar "B"),
+          Imp (Imp (TVar "B", TVar "C"), Imp (TVar "A", TVar "C")) ));
   assert (
     try infer_type [] (Abs ("f", TVar "A", Var "x")) = TVar "s" with
     | Type_error -> true
@@ -133,7 +116,7 @@ let () =
       infer_type []
         (Abs
            ( "f",
-             Map (TVar "A", TVar "B"),
+             Imp (TVar "A", TVar "B"),
              Abs ("x", TVar "B", App (Var "f", Var "x")) ))
       = TVar "s"
     with
@@ -142,7 +125,7 @@ let () =
 
 let () =
   let and_comm =
-    Abs ("t", Conj (TVar "A", TVar "B"), Pair (Snd (Var "t"), Fst (Var "t")))
+    Abs ("t", And (TVar "A", TVar "B"), Pair (Snd (Var "t"), Fst (Var "t")))
   in
   print_endline (string_of_tm and_comm);
   print_endline (string_of_ty (infer_type [] and_comm))
@@ -151,7 +134,7 @@ let () =
   let or_comm =
     Abs
       ( "c",
-        Disj (TVar "A", TVar "B"),
+        Or (TVar "A", TVar "B"),
         Case
           ( Var "c",
             Abs ("x", TVar "A", VarR (Var "x", TVar "B")),
@@ -161,7 +144,7 @@ let () =
   print_endline (string_of_ty (infer_type [] or_comm))
 
 let () =
-  let truth = Abs ("f", Map (True, TVar "A"), App (Var "f", Unit)) in
+  let truth = Abs ("f", Imp (True, TVar "A"), App (Var "f", Unit)) in
   print_endline (string_of_tm truth);
   print_endline (string_of_ty (infer_type [] truth))
 
@@ -169,7 +152,7 @@ let () =
   let fals =
     Abs
       ( "t",
-        Conj (TVar "A", Map (TVar "A", Empty)),
+        And (TVar "A", Imp (TVar "A", False)),
         EmptyCase (App (Snd (Var "t"), Fst (Var "t")), TVar "B") )
   in
   print_endline (string_of_tm fals);

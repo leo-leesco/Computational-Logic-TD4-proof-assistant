@@ -19,6 +19,6 @@ type tm =
   | Snd of tm
   | VarL of tm * ty
   | VarR of tm * ty
-  | Case of tm * tm * tm
+  | Case of tm * var * tm * var * tm
   | Unit
   | EmptyCase of tm * ty

@@ -1,30 +1,7 @@
-type tvar = string
-(** Type variables. *)
+open Expr
 
-type var = string
-(** Term variables. *)
-
-(** Types. *)
-type typ =
-  | TVar of var
-  | Map of typ * typ
-  | Conj of typ * typ
-  | Disj of typ * typ
-  | True
-  | Empty
-
-type term =
-  | Var of var
-  | App of term * term
-  | Abs of var * typ * term
-  | Pair of term * term
-  | Fst of term
-  | Snd of term
-  | VarL of term * typ
-  | VarR of term * typ
-  | Case of term * term * term
-  | Unit
-  | EmptyCase of term * typ
+let ty_of_string s = Parser.typ Lexer.token (Lexing.from_string s)
+let tm_of_string s = Parser.term Lexer.token (Lexing.from_string s)
 
 let rec string_of_ty ty =
   match ty with
@@ -174,3 +151,46 @@ let () =
   in
   print_endline (string_of_tm fals);
   print_endline (string_of_ty (infer_type [] fals))
+
+let () =
+  let l =
+    [
+      "A => B";
+      "A ⇒ B";
+      "A /\\ B";
+      "A ∧ B";
+      "T";
+      "A \\/ B";
+      "A ∨ B";
+      "_";
+      "not A";
+      "¬ A";
+    ]
+  in
+  List.iter
+    (fun s ->
+      Printf.printf "the parsing of %S is %s\n%!" s
+        (string_of_ty (ty_of_string s)))
+    l
+
+let () =
+  let l =
+    [
+      "t u v";
+      "fun (x : A) -> t";
+      "λ (x : A) → t";
+      "(t , u)";
+      "fst(t)";
+      "snd(t)";
+      "()";
+      "case t of x -> u | y -> v";
+      "left(t,B)";
+      "right(A,t)";
+      "absurd(t,A)";
+    ]
+  in
+  List.iter
+    (fun s ->
+      Printf.printf "the parsing of %S is %s\n%!" s
+        (string_of_tm (tm_of_string s)))
+    l

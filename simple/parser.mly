@@ -34,7 +34,7 @@ ty:
 tm:
   | atm                                    { $1 }
   | FUN LPAR IDENT COLON ty RPAR TO tm     { Abs ($3, $5, $8) }
-  | CASE tm OF IDENT TO tm BAR IDENT TO tm { Case ($2, $4, $6, $8, $10) }
+  | CASE tm OF ty TO tm BAR ty TO tm { Case ($2, $4, $6, $8, $10) }
 
 /* An application */
 atm:

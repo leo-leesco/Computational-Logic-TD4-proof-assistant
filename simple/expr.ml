@@ -22,6 +22,6 @@ type tm =
   | Snd of tm
   | Left of tm * ty
   | Right of ty * tm
-  | Case of tm * ty * tm * ty * tm
+  | Case of tm * var * tm * var * tm
   | Unit
   | Absurd of tm * ty

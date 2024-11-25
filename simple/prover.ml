@@ -28,9 +28,9 @@ let rec string_of_tm tm =
       "\u{27e8}" ^ string_of_tm t1 ^ "," ^ string_of_tm t2 ^ "\u{27e9}"
   | Left (t, b) -> "\u{1d704}l" ^ string_of_ty b ^ "(" ^ string_of_tm t ^ ")"
   | Right (a, t) -> "\u{1d704}r" ^ string_of_ty a ^ "(" ^ string_of_tm t ^ ")"
-  | Case (t, a, u, b, v) ->
-      "case(" ^ string_of_tm t ^ " , " ^ string_of_ty a ^ " , " ^ string_of_tm u
-      ^ " , " ^ string_of_ty b ^ " , " ^ string_of_tm v ^ ")"
+  | Case (t, x, u, y, v) ->
+      "case(" ^ string_of_tm t ^ ", " ^ x ^ ", " ^ string_of_tm u ^ ", " ^ y
+      ^ ", " ^ string_of_tm v ^ ")"
   | Fst t -> "\u{1D6D1}1(" ^ string_of_tm t ^ ")"
   | Snd t -> "\u{1D6D1}2(" ^ string_of_tm t ^ ")"
   | Unit -> "\u{27e8}\u{27e9}"
@@ -63,9 +63,14 @@ let rec infer_type env t =
   | Pair (t1, t2) -> And (infer_type env t1, infer_type env t2)
   | Left (t, b) -> Or (infer_type env t, b)
   | Right (a, t) -> Or (a, infer_type env t)
-  | Case (t, a, u, b, v) -> (
-      match (infer_type env t, infer_type env u, infer_type env v) with
-      | Or (a', b'), c1, c2 when a = a' && b = b' && c1 = c2 -> c1
+  | Case (t, x, u, y, v) -> (
+      match infer_type env t with
+      | Or (a, b) -> (
+          match
+            (infer_type ((x, a) :: env) u, infer_type ((y, b) :: env) v)
+          with
+          | c1, c2 when c1 = c2 -> c1
+          | _ -> raise Type_error)
       | _ -> raise Type_error)
   | Fst t -> (
       match infer_type env t with And (t1, _) -> t1 | _ -> raise Type_error)
@@ -125,14 +130,14 @@ let () =
 let () =
   let or_comm =
     Abs
-      ( "c",
+      ( "t",
         Or (TVar "A", TVar "B"),
         Case
-          ( Var "x",
-            TVar "A",
+          ( Var "t",
+            "x",
             Right (TVar "B", Var "x"),
-            TVar "B",
-            Left (Var "x", TVar "A") ) )
+            "y",
+            Left (Var "y", TVar "A") ) )
   in
   print_endline (string_of_tm or_comm);
   print_endline (string_of_ty (infer_type [] or_comm))

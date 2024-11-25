@@ -221,16 +221,17 @@ let () =
   let seq = ([ ("x", Imp (TVar "A", TVar "B")); ("y", TVar "A") ], TVar "B") in
   print_endline (string_of_seq seq)
 
-let rec prove env a =
+let rec prove env a commands destination =
   print_endline (string_of_seq (env, a));
   print_string "? ";
   flush_all ();
   let error e =
-    print_endline e;
-    prove env a
+    output_string destination e;
+    prove env a commands destination
   in
   let cmd, arg =
-    let cmd = input_line stdin in
+    let cmd = input_line commands in
+    output_string destination (cmd ^ "\n");
     let n = try String.index cmd ' ' with Not_found -> String.length cmd in
     let c = String.sub cmd 0 n in
     let a = String.sub cmd n (String.length cmd - n) in
@@ -244,9 +245,12 @@ let rec prove env a =
           if arg = "" then error "Please provide an argument for intro."
           else
             let x = arg in
-            let t = prove ((x, a) :: env) b in
+            let t = prove ((x, a) :: env) b commands destination in
             Abs (x, a, t)
       | _ -> error "Don't know how to introduce this.")
+  | "exact" ->
+      let t = tm_of_string arg in
+      if infer_type env t <> a then error "Not the right type." else t
   | "elim" -> (
       if (* c'est mon objectif de preuve *)
          arg = "" then error "Please provide an argument for elim."
@@ -255,24 +259,49 @@ let rec prove env a =
         match a_to_b with
         | Imp (a', b') ->
             if a = b' then
-              let u = prove env a' in
+              let u = prove env a' commands destination in
               let t = Var f in
               App (t, u)
             else
               error
                 "The specified function return type does not match the goal."
         | _ -> error "Argument provided is not a function.")
-  | "exact" ->
-      let t = tm_of_string arg in
-      if infer_type env t <> a then error "Not the right type." else t
+  | "cut" -> error "cut"
   | cmd -> error ("Unknown command: " ^ cmd)
 
 let () =
-  print_endline "Please enter the formula to prove:";
-  let a = input_line stdin in
+  let commands, destination =
+    print_endline "Would you like to load the proof from a file? [y/n]";
+    match input_line stdin with
+    | "y" ->
+        print_endline
+          "Please specify the name of the file that contains the proof:";
+        let name = input_line stdin in
+        (open_in (name ^ ".proof"), stdout)
+    | "n" ->
+        print_endline
+          "Please specify the name of the file that will store the proof:";
+        let name = input_line stdin in
+        (stdin, open_out (name ^ ".proof"))
+    | _ -> raise (Invalid_argument "Invalid argument")
+  in
+
+  let a =
+    if commands = stdin then (
+      print_endline "Please enter the formula to prove:";
+      let goal = input_line commands in
+      output_string destination (goal ^ "\n");
+      print_endline goal;
+      goal)
+    else (
+      print_endline "Goal:";
+      let goal = input_line commands in
+      print_endline goal;
+      goal)
+  in
   let a = ty_of_string a in
   print_endline "Let's prove it.";
-  let t = prove [] a in
+  let t = prove [] a commands destination in
   print_endline "done.";
   print_endline "Proof term is";
   print_endline (string_of_tm t);

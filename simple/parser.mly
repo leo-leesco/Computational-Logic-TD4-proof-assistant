@@ -24,7 +24,7 @@ open Expr
 ty:
   | IDENT     { TVar $1 }
   | ty IMP ty { Imp ($1, $3) }
-  | LPAR ty IMP ty RPAR { Imp ($2, $4) }
+  | LPAR ty RPAR { $2 }
   | ty AND ty { And ($1, $3) }
   | ty OR ty  { Or ($1, $3) }
   | NOT ty    { Imp ($2, False) }

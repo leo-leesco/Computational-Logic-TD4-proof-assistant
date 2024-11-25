@@ -161,7 +161,7 @@ let () =
   let l =
     [
       "A => B";
-      (*"A ⇒ B";*)
+      (*"A ⇒ B"; OCaml LSP does not like unicode characters very much...*)
       "A /\\ B";
       (*"A ∧ B";*)
       "T";
@@ -199,3 +199,84 @@ let () =
       Printf.printf "the parsing of %S is %s\n%!" s
         (string_of_tm (tm_of_string s)))
     l
+
+let string_of_ctx ctx =
+  String.concat ", " (List.map (fun (x, t) -> x ^ " : " ^ string_of_ty t) ctx)
+
+let () =
+  let ctx =
+    [
+      ("x", Imp (TVar "A", TVar "B"));
+      ("y", And (TVar "A", TVar "B"));
+      ("Z", TVar "T");
+    ]
+  in
+  print_endline (string_of_ctx ctx)
+
+type sequent = context * ty
+
+let string_of_seq (ctx, t) = string_of_ctx ctx ^ " |- " ^ string_of_ty t
+
+let () =
+  let seq = ([ ("x", Imp (TVar "A", TVar "B")); ("y", TVar "A") ], TVar "B") in
+  print_endline (string_of_seq seq)
+
+let rec prove env a =
+  print_endline (string_of_seq (env, a));
+  print_string "? ";
+  flush_all ();
+  let error e =
+    print_endline e;
+    prove env a
+  in
+  let cmd, arg =
+    let cmd = input_line stdin in
+    let n = try String.index cmd ' ' with Not_found -> String.length cmd in
+    let c = String.sub cmd 0 n in
+    let a = String.sub cmd n (String.length cmd - n) in
+    let a = String.trim a in
+    (c, a)
+  in
+  match cmd with
+  | "intro" -> (
+      match a with
+      | Imp (a, b) ->
+          if arg = "" then error "Please provide an argument for intro."
+          else
+            let x = arg in
+            let t = prove ((x, a) :: env) b in
+            Abs (x, a, t)
+      | _ -> error "Don't know how to introduce this.")
+  | "elim" -> (
+      if (* c'est mon objectif de preuve *)
+         arg = "" then error "Please provide an argument for elim."
+      else
+        let f, a_to_b = List.find (fun (x, _) -> x = arg) env in
+        match a_to_b with
+        | Imp (a', b') ->
+            if a = b' then
+              let u = prove env a' in
+              let t = Var f in
+              App (t, u)
+            else
+              error
+                "The specified function return type does not match the goal."
+        | _ -> error "Argument provided is not a function.")
+  | "exact" ->
+      let t = tm_of_string arg in
+      if infer_type env t <> a then error "Not the right type." else t
+  | cmd -> error ("Unknown command: " ^ cmd)
+
+let () =
+  print_endline "Please enter the formula to prove:";
+  let a = input_line stdin in
+  let a = ty_of_string a in
+  print_endline "Let's prove it.";
+  let t = prove [] a in
+  print_endline "done.";
+  print_endline "Proof term is";
+  print_endline (string_of_tm t);
+  print_string "Typechecking... ";
+  flush_all ();
+  assert (infer_type [] t = a);
+  print_endline "ok."

@@ -1,5 +1,5 @@
-A => not (not A)
+A => not(not A)
 intro x
-intro nA
-elim nA
+intro f
+elim f
 exact x

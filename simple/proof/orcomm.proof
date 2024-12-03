@@ -1,5 +1,7 @@
 A \/ B => B \/ A
 intro p
-type p
 elim p
-type p
+right
+exact p
+left
+exact p

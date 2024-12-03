@@ -16,9 +16,9 @@ let rec string_of_ty ty =
 let rec raw_of_ty ty =
   match ty with
   | TVar v -> v
-  | Imp (t1, t2) -> "Imp (" ^ raw_of_ty t1 ^ "," ^ raw_of_ty t2 ^ ")"
-  | And (t1, t2) -> "And (" ^ raw_of_ty t1 ^ "," ^ raw_of_ty t2 ^ ")"
-  | Or (t1, t2) -> "Or (" ^ raw_of_ty t1 ^ "," ^ raw_of_ty t2 ^ ")"
+  | Imp (t1, t2) -> "Imp(" ^ raw_of_ty t1 ^ "," ^ raw_of_ty t2 ^ ")"
+  | And (t1, t2) -> "And(" ^ raw_of_ty t1 ^ "," ^ raw_of_ty t2 ^ ")"
+  | Or (t1, t2) -> "Or(" ^ raw_of_ty t1 ^ "," ^ raw_of_ty t2 ^ ")"
   | True -> "True"
   | False -> "False"
 
@@ -277,6 +277,7 @@ let rec prove env goal commands destination =
           let x = prove env a commands destination in
           let y = prove env b commands destination in
           Pair (x, y)
+      | True -> Unit
       | _ -> error "Don't know how to introduce this.")
   | "elim" -> (
       if arg = "" then error "Please provide an argument for elim."
@@ -291,9 +292,13 @@ let rec prove env goal commands destination =
               error
                 "The specified function return type does not match the goal."
         | Or (a, b) ->
-            let _ = prove ((arg, a) :: env) goal commands destination in
-            let _ = prove ((arg, b) :: env) goal commands destination in
-            prove env goal commands destination
+            let u =
+              prove ((arg ^ raw_of_ty a, a) :: env) goal commands destination
+            in
+            let v =
+              prove ((arg ^ raw_of_ty b, b) :: env) goal commands destination
+            in
+            Case (tm_of_string arg, arg ^ raw_of_ty a, u, arg ^ raw_of_ty b, v)
         | False -> Absurd (Var x, goal)
         | _ -> error "Cannot eliminate.")
   | "cut" ->
@@ -323,11 +328,11 @@ let rec prove env goal commands destination =
             ("Not the correct type.\nType provided : " ^ string_of_ty intended
            ^ " ; Goal : " ^ string_of_ty goal)
         else Snd t
-  | "tintro" ->
-      if arg = "" then error "Please provide an argument for tintro."
-      else
-        let _ = prove ((arg, True) :: env) goal commands destination in
-        Unit
+  (*| "tintro" ->*)
+  (*    if arg = "" then error "Please provide an argument for tintro."*)
+  (*    else*)
+  (*      let _ = prove ((arg, True) :: env) goal commands destination in*)
+  (*      Unit*)
   | "left" -> (
       match goal with
       | Or (a, b) ->

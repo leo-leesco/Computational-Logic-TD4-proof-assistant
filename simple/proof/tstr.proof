@@ -1,4 +1,4 @@
-(T => A) => T
+(T => A) => A
 intro f
-tintro t
-exact t
+elim f
+intro

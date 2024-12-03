@@ -1,0 +1,11 @@
+((not A) \/ B) => A => B
+intro p
+intro x
+elim p
+elim pImp(A,False)
+cut _
+intro f
+elim f
+elim pImp(A,False)
+exact x
+exact pB

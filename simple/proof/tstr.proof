@@ -1,0 +1,4 @@
+(T => A) => T
+intro f
+tintro t
+exact t

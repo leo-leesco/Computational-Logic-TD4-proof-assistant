@@ -1,0 +1,13 @@
+not T => _
+show
+intro f
+show
+tintro
+tintro t
+show
+elim f
+show
+exact t
+exact t
+elim f
+exact t

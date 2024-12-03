@@ -1,0 +1,4 @@
+A => T
+intro x
+tintro t
+exact t

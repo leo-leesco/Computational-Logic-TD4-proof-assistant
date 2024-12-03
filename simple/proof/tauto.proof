@@ -1,0 +1,5 @@
+A => A
+cut B
+intro x
+intro y
+exact y

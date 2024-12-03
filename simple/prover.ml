@@ -1,5 +1,6 @@
 open Expr
 
+let debug = false
 let ty_of_string s = Parser.ty Lexer.token (Lexing.from_string s)
 let tm_of_string s = Parser.tm Lexer.token (Lexing.from_string s)
 
@@ -12,11 +13,21 @@ let rec string_of_ty ty =
   | True -> "\u{22a4}"
   | False -> "\u{22a5}"
 
+let rec raw_of_ty ty =
+  match ty with
+  | TVar v -> v
+  | Imp (t1, t2) -> "Imp (" ^ raw_of_ty t1 ^ "," ^ raw_of_ty t2 ^ ")"
+  | And (t1, t2) -> "And (" ^ raw_of_ty t1 ^ "," ^ raw_of_ty t2 ^ ")"
+  | Or (t1, t2) -> "Or (" ^ raw_of_ty t1 ^ "," ^ raw_of_ty t2 ^ ")"
+  | True -> "True"
+  | False -> "False"
+
 let () =
-  print_endline
-    (string_of_ty (Imp (Imp (TVar "A", TVar "B"), Imp (TVar "A", TVar "C"))));
-  print_endline (string_of_ty (And (TVar "A", TVar "B")));
-  print_endline (string_of_ty True)
+  if debug then (
+    print_endline
+      (string_of_ty (Imp (Imp (TVar "A", TVar "B"), Imp (TVar "A", TVar "C"))));
+    print_endline (string_of_ty (And (TVar "A", TVar "B")));
+    print_endline (string_of_ty True))
 
 let rec string_of_tm tm =
   match tm with
@@ -37,14 +48,15 @@ let rec string_of_tm tm =
   | Absurd (t, a) -> "case" ^ string_of_ty a ^ "(" ^ string_of_tm t ^ ")"
 
 let () =
-  print_endline
-    (string_of_tm
-       (Abs
-          ( "f",
-            Imp (TVar "A", TVar "B"),
-            Abs ("x", TVar "A", App (Var "f", Var "x")) )));
-  print_endline (string_of_tm (Pair (Var "x", Var "y")));
-  print_endline (string_of_tm Unit)
+  if debug then (
+    print_endline
+      (string_of_tm
+         (Abs
+            ( "f",
+              Imp (TVar "A", TVar "B"),
+              Abs ("x", TVar "A", App (Var "f", Var "x")) )));
+    print_endline (string_of_tm (Pair (Var "x", Var "y")));
+    print_endline (string_of_tm Unit))
 
 type context = (var * ty) list
 
@@ -121,114 +133,125 @@ let () =
     | _ -> false)
 
 let () =
-  let and_comm =
-    Abs ("t", And (TVar "A", TVar "B"), Pair (Snd (Var "t"), Fst (Var "t")))
-  in
-  print_endline (string_of_tm and_comm);
-  print_endline (string_of_ty (infer_type [] and_comm))
+  if debug then (
+    let and_comm =
+      Abs ("t", And (TVar "A", TVar "B"), Pair (Snd (Var "t"), Fst (Var "t")))
+    in
+    print_endline (string_of_tm and_comm);
+    print_endline (string_of_ty (infer_type [] and_comm)))
 
 let () =
-  let or_comm =
-    Abs
-      ( "t",
-        Or (TVar "A", TVar "B"),
-        Case
-          ( Var "t",
-            "x",
-            Right (TVar "B", Var "x"),
-            "y",
-            Left (Var "y", TVar "A") ) )
-  in
-  print_endline (string_of_tm or_comm);
-  print_endline (string_of_ty (infer_type [] or_comm))
+  if debug then (
+    let or_comm =
+      Abs
+        ( "t",
+          Or (TVar "A", TVar "B"),
+          Case
+            ( Var "t",
+              "x",
+              Right (TVar "B", Var "x"),
+              "y",
+              Left (Var "y", TVar "A") ) )
+    in
+    print_endline (string_of_tm or_comm);
+    print_endline (string_of_ty (infer_type [] or_comm)))
 
 let () =
-  let truth = Abs ("f", Imp (True, TVar "A"), App (Var "f", Unit)) in
-  print_endline (string_of_tm truth);
-  print_endline (string_of_ty (infer_type [] truth))
+  if debug then (
+    let truth = Abs ("f", Imp (True, TVar "A"), App (Var "f", Unit)) in
+    print_endline (string_of_tm truth);
+    print_endline (string_of_ty (infer_type [] truth)))
 
 let () =
-  let fals =
-    Abs
-      ( "t",
-        And (TVar "A", Imp (TVar "A", False)),
-        Absurd (App (Snd (Var "t"), Fst (Var "t")), TVar "B") )
-  in
-  print_endline (string_of_tm fals);
-  print_endline (string_of_ty (infer_type [] fals))
+  if debug then (
+    let fals =
+      Abs
+        ( "t",
+          And (TVar "A", Imp (TVar "A", False)),
+          Absurd (App (Snd (Var "t"), Fst (Var "t")), TVar "B") )
+    in
+    print_endline (string_of_tm fals);
+    print_endline (string_of_ty (infer_type [] fals)))
 
 let () =
-  let l =
-    [
-      "A => B";
-      (*"A ⇒ B"; OCaml LSP does not like unicode characters very much...*)
-      "A /\\ B";
-      (*"A ∧ B";*)
-      "T";
-      "A \\/ B";
-      (*"A ∨ B";*)
-      "_";
-      "not A";
-      (*"¬ A";*)
-    ]
-  in
-  List.iter
-    (fun s ->
-      Printf.printf "the parsing of %S is %s\n%!" s
-        (string_of_ty (ty_of_string s)))
-    l
+  if debug then
+    let l =
+      [
+        "A => B";
+        (*"A ⇒ B"; OCaml LSP does not like unicode characters very much...*)
+        "A /\\ B";
+        (*"A ∧ B";*)
+        "T";
+        "A \\/ B";
+        (*"A ∨ B";*)
+        "_";
+        "not A";
+        (*"¬ A";*)
+      ]
+    in
+    List.iter
+      (fun s ->
+        Printf.printf "the parsing of %S is %s\n%!" s
+          (string_of_ty (ty_of_string s)))
+      l
 
 let () =
-  let l =
-    [
-      "t u v";
-      "fun (x : A) -> t";
-      (*"λ (x : A) → t";*)
-      "(t , u)";
-      "fst(t)";
-      "snd(t)";
-      "()";
-      "case t of x -> u | y -> v";
-      "left(t,B)";
-      "right(A,t)";
-      "absurd(t,A)";
-    ]
-  in
-  List.iter
-    (fun s ->
-      Printf.printf "the parsing of %S is %s\n%!" s
-        (string_of_tm (tm_of_string s)))
-    l
+  if debug then
+    let l =
+      [
+        "t u v";
+        "fun (x : A) -> t";
+        (*"λ (x : A) → t";*)
+        "(t , u)";
+        "fst(t)";
+        "snd(t)";
+        "()";
+        "case t of x -> u | y -> v";
+        "left(t,B)";
+        "right(A,t)";
+        "absurd(t,A)";
+      ]
+    in
+    List.iter
+      (fun s ->
+        Printf.printf "the parsing of %S is %s\n%!" s
+          (string_of_tm (tm_of_string s)))
+      l
 
 let string_of_ctx ctx =
   String.concat ", " (List.map (fun (x, t) -> x ^ " : " ^ string_of_ty t) ctx)
 
 let () =
-  let ctx =
-    [
-      ("x", Imp (TVar "A", TVar "B"));
-      ("y", And (TVar "A", TVar "B"));
-      ("Z", TVar "T");
-    ]
-  in
-  print_endline (string_of_ctx ctx)
+  if debug then
+    let ctx =
+      [
+        ("x", Imp (TVar "A", TVar "B"));
+        ("y", And (TVar "A", TVar "B"));
+        ("Z", TVar "T");
+      ]
+    in
+    print_endline (string_of_ctx ctx)
 
 type sequent = context * ty
 
 let string_of_seq (ctx, t) = string_of_ctx ctx ^ " |- " ^ string_of_ty t
 
 let () =
-  let seq = ([ ("x", Imp (TVar "A", TVar "B")); ("y", TVar "A") ], TVar "B") in
-  print_endline (string_of_seq seq)
+  if debug then
+    let seq =
+      ([ ("x", Imp (TVar "A", TVar "B")); ("y", TVar "A") ], TVar "B")
+    in
+    print_endline (string_of_seq seq)
 
-let rec prove env a commands destination =
-  print_endline (string_of_seq (env, a));
+let rec prove env goal commands destination =
+  let error e =
+    print_endline e;
+    prove env goal commands destination
+  in
+
+  print_endline (string_of_seq (env, goal));
   print_string "? ";
   flush_all ();
-  let error e =
-    output_string destination e;
-    prove env a commands destination
-  in
   let cmd, arg =
     let cmd = input_line commands in
     output_string destination (cmd ^ "\n");
@@ -238,35 +261,103 @@ let rec prove env a commands destination =
     let a = String.trim a in
     (c, a)
   in
+
   match cmd with
   | "intro" -> (
-      match a with
+      match goal with
       | Imp (a, b) ->
           if arg = "" then error "Please provide an argument for intro."
+          else if List.exists (fun (x, _) -> x = arg) env then
+            error "This variable is already in the environment."
           else
             let x = arg in
             let t = prove ((x, a) :: env) b commands destination in
             Abs (x, a, t)
+      | And (a, b) ->
+          let x = prove env a commands destination in
+          let y = prove env b commands destination in
+          Pair (x, y)
       | _ -> error "Don't know how to introduce this.")
-  | "exact" ->
-      let t = tm_of_string arg in
-      if infer_type env t <> a then error "Not the right type." else t
   | "elim" -> (
-      if (* c'est mon objectif de preuve *)
-         arg = "" then error "Please provide an argument for elim."
+      if arg = "" then error "Please provide an argument for elim."
       else
-        let f, a_to_b = List.find (fun (x, _) -> x = arg) env in
-        match a_to_b with
-        | Imp (a', b') ->
-            if a = b' then
-              let u = prove env a' commands destination in
-              let t = Var f in
-              App (t, u)
+        let x, tx = List.find (fun (y, _) -> y = arg) env in
+        match tx with
+        | Imp (a, b) ->
+            if goal = b then
+              let u = prove env a commands destination in
+              App (Var x, u)
             else
               error
                 "The specified function return type does not match the goal."
-        | _ -> error "Argument provided is not a function.")
-  | "cut" -> error "cut"
+        | Or (a, b) ->
+            let _ = prove ((arg, a) :: env) goal commands destination in
+            let _ = prove ((arg, b) :: env) goal commands destination in
+            prove env goal commands destination
+        | False -> Absurd (Var x, goal)
+        | _ -> error "Cannot eliminate.")
+  | "cut" ->
+      if arg = "" then error "Please provide an argument for cut."
+      else
+        let arg = ty_of_string arg in
+        let t = prove env (Imp (arg, goal)) commands destination in
+        let u = prove env arg commands destination in
+        App (t, u)
+  | "fst" ->
+      if arg = "" then error "Please provide an argument for fst."
+      else
+        let t = tm_of_string arg in
+        let intended = infer_type env (Fst t) in
+        if intended <> goal then
+          error
+            ("Not the correct type.\nType provided : " ^ string_of_ty intended
+           ^ " ; Goal : " ^ string_of_ty goal)
+        else Fst t
+  | "snd" ->
+      if arg = "" then error "Please provide an argument for fst."
+      else
+        let t = tm_of_string arg in
+        let intended = infer_type env (Snd t) in
+        if intended <> goal then
+          error
+            ("Not the correct type.\nType provided : " ^ string_of_ty intended
+           ^ " ; Goal : " ^ string_of_ty goal)
+        else Snd t
+  | "tintro" ->
+      if arg = "" then error "Please provide an argument for tintro."
+      else
+        let _ = prove ((arg, True) :: env) goal commands destination in
+        Unit
+  | "left" -> (
+      match goal with
+      | Or (a, b) ->
+          let t = prove env a commands destination in
+          Left (t, b)
+      | _ -> error "Cannot introduce this.")
+  | "right" -> (
+      match goal with
+      | Or (a, b) ->
+          let t = prove env b commands destination in
+          Right (a, t)
+      | _ -> error "Cannot introduce this.")
+  | "exact" ->
+      let t = tm_of_string arg in
+      let intended = infer_type env t in
+      if intended <> goal then
+        error
+          ("Not the correct type.\nType provided : " ^ string_of_ty intended
+         ^ " ; Goal : " ^ string_of_ty goal)
+      else t
+  | "type" ->
+      if arg = "" then
+        error "Please provide the name of the variable you are looking for."
+      else
+        let t = tm_of_string arg in
+        let intended = infer_type env t in
+        error
+          ("Variable " ^ arg ^ " : " ^ raw_of_ty intended ^ " ; Goal : "
+         ^ raw_of_ty goal)
+  | "show" -> error (string_of_tm (prove env goal commands destination))
   | cmd -> error ("Unknown command: " ^ cmd)
 
 let () =
@@ -277,12 +368,12 @@ let () =
         print_endline
           "Please specify the name of the file that contains the proof:";
         let name = input_line stdin in
-        (open_in (name ^ ".proof"), stdout)
+        (open_in ("proof/" ^ name ^ ".proof"), stdout)
     | "n" ->
         print_endline
           "Please specify the name of the file that will store the proof:";
         let name = input_line stdin in
-        (stdin, open_out (name ^ ".proof"))
+        (stdin, open_out ("proof/" ^ name ^ ".proof"))
     | _ -> raise (Invalid_argument "Invalid argument")
   in
 

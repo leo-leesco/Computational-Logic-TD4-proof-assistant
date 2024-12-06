@@ -1,8 +1,14 @@
 (A => not A) => (not A => A) => _
 intro f
 intro g
+cut not A
+intro nA
+elim nA
+intro a
+elim g
+exact nA
+intro a
 cut A
 elim f
-elim g
-intro x
-intro i
+exact a
+exact a

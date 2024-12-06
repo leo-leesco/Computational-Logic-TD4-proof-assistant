@@ -2,4 +2,5 @@
 (ocamlyacc parser)
 (executable
  (name prover)
+ (libraries str)
 )

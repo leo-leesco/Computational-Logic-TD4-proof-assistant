@@ -12,6 +12,7 @@ let rec string_of_ty ty =
   | Or (t1, t2) -> "(" ^ string_of_ty t1 ^ " \\/ " ^ string_of_ty t2 ^ ")"
   | True -> "\u{22a4}"
   | False -> "\u{22a5}"
+  | Nat -> "\u{2115}"
 
 let rec raw_of_ty ty =
   match ty with
@@ -21,6 +22,7 @@ let rec raw_of_ty ty =
   | Or (t1, t2) -> "Or(" ^ raw_of_ty t1 ^ "," ^ raw_of_ty t2 ^ ")"
   | True -> "True"
   | False -> "False"
+  | Nat -> "Nat"
 
 let () =
   if debug then (
@@ -30,6 +32,21 @@ let () =
     print_endline (string_of_ty True))
 
 let rec string_of_tm tm =
+  let extract_parts str =
+    let rec index_of_last_number s ?(idx = String.length str) () =
+      let is_digit c = c >= '0' && c <= '9' in
+      if s = "" || not (is_digit s.[String.length s - 1]) then idx
+      else
+        let lm1 = String.length s - 1 in
+        let s' = String.sub s 0 lm1 in
+        index_of_last_number s' ~idx:lm1 ()
+    in
+
+    let idx_number = index_of_last_number str () in
+    ( String.sub str 0 idx_number,
+      String.sub str idx_number (String.length str - idx_number) )
+  in
+
   match tm with
   | Var v -> v
   | App (t1, t2) -> "(" ^ string_of_tm t1 ^ " " ^ string_of_tm t2 ^ ")"
@@ -46,6 +63,13 @@ let rec string_of_tm tm =
   | Snd t -> "\u{1D6D1}2(" ^ string_of_tm t ^ ")"
   | Unit -> "\u{27e8}\u{27e9}"
   | Absurd (t, a) -> "case" ^ string_of_ty a ^ "(" ^ string_of_tm t ^ ")"
+  | Zero -> string_of_int 0
+  | Succ x ->
+      let prefix, n = extract_parts (string_of_tm x) in
+      prefix ^ if n = "" then " + 1" else string_of_int (int_of_string n + 1)
+  | Rec (n, init, here) ->
+      "rec(" ^ string_of_tm n ^ ", " ^ string_of_tm init ^ ", "
+      ^ string_of_tm here ^ ")"
 
 let () =
   if debug then (
@@ -56,7 +80,22 @@ let () =
               Imp (TVar "A", TVar "B"),
               Abs ("x", TVar "A", App (Var "f", Var "x")) )));
     print_endline (string_of_tm (Pair (Var "x", Var "y")));
-    print_endline (string_of_tm Unit))
+    print_endline (string_of_tm Unit);
+    print_endline (string_of_tm Zero);
+    print_endline (string_of_tm (Succ Zero));
+    print_endline (string_of_tm (Succ (Succ Zero)));
+    print_endline
+      (string_of_tm
+         (Rec
+            ( Succ (Succ (Succ Zero)),
+              Zero,
+              Abs ("x", Nat, Abs ("y", Nat, Succ (Var "y"))) )));
+    print_endline
+      (string_of_tm
+         (Rec
+            ( Succ (Succ (Succ Zero)),
+              Zero,
+              Abs ("x", Nat, Abs ("y", Nat, Succ (Succ (Var "y")))) ))))
 
 type context = (var * ty) list
 
@@ -91,6 +130,15 @@ let rec infer_type env t =
   | Unit -> True
   | Absurd (t, a) -> (
       match infer_type env t with False -> a | _ -> raise Type_error)
+  | Zero -> Nat
+  | Succ n -> if infer_type env n = Nat then Nat else raise Type_error
+  | Rec (n, init, here) -> (
+      match here with
+      | Abs (_, tx, Abs (_, ty, v))
+        when infer_type env n = Nat && infer_type env init = Nat && tx = Nat ->
+          let tv = infer_type env v in
+          if tv = ty then tv else raise Type_error
+      | _ -> raise Type_error)
 
 and check_type env t a = if infer_type env t <> a then raise Type_error
 
@@ -278,6 +326,13 @@ let rec prove env goal commands destination =
           let y = prove env b commands destination in
           Pair (x, y)
       | True -> Unit
+      | Nat ->
+          if arg = "" then Zero
+          else if List.exists (fun (x, _) -> x = arg) env then
+            error "This variable is already in the environment."
+          else
+            let t = prove ((arg, Nat) :: env) Nat commands destination in
+            Succ t
       | _ -> error "Don't know how to introduce this.")
   | "elim" -> (
       if arg = "" then error "Please provide an argument for elim."
@@ -300,6 +355,27 @@ let rec prove env goal commands destination =
             in
             Case (tm_of_string arg, arg ^ raw_of_ty a, u, arg ^ raw_of_ty b, v)
         | False -> Absurd (Var x, goal)
+        | Nat -> (
+            if not (String.contains arg '|') then
+              error "Please input rank step x and step y in the form \"x | y\""
+            else
+              match String.split_on_char '|' arg with
+              | x :: y :: _ ->
+                  let t = prove env Nat commands destination in
+                  let u = prove env goal commands destination in
+                  let v =
+                    prove
+                      ((x, Nat) :: (y, goal) :: env)
+                      goal commands destination
+                  in
+                  Rec (t, u, Abs (x, Nat, Abs (y, goal, v)))
+              | _ -> error "Not enough arguments provided")
+        (*      | Rec(n,init,here) ->*)
+        (*      let t = prove env Nat commands destination in*)
+        (*let u = prove env goal commands destination in*)
+        (*let Abs(x,tx,Abs(y,ty,res))=here in*)
+        (*    if tx <> Nat then error x^" is not in \u{2115}"else*)
+        (*let v = prove ((x,tx) :: (y,ty) :: env) goal commands destination in*)
         | _ -> error "Cannot eliminate.")
   | "cut" ->
       if arg = "" then error "Please provide an argument for cut."

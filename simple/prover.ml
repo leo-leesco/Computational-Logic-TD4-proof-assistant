@@ -24,6 +24,9 @@ let rec raw_of_ty ty =
   | False -> "False"
   | Nat -> "Nat"
 
+let string_of_ctx ctx =
+  String.concat ", " (List.map (fun (x, t) -> x ^ " : " ^ string_of_ty t) ctx)
+
 let () =
   if debug then (
     print_endline
@@ -102,45 +105,93 @@ type context = (var * ty) list
 exception Type_error
 
 let rec infer_type env t =
+  if debug then (
+    print_string (string_of_tm t);
+    print_endline (string_of_ctx env));
   match t with
-  | Var x -> ( try List.assoc x env with Not_found -> raise Type_error)
+  | Var x -> (
+      try List.assoc x env
+      with Not_found ->
+        if debug then print_endline ("could not find variable" ^ x);
+        raise Type_error)
   | Abs (x, a, t) -> Imp (a, infer_type ((x, a) :: env) t)
   | App (t, u) -> (
       match infer_type env t with
       | Imp (a, b) ->
           check_type env u a;
           b
-      | _ -> raise Type_error)
+      | terr ->
+          if debug then print_endline (raw_of_ty terr);
+          raise Type_error)
   | Pair (t1, t2) -> And (infer_type env t1, infer_type env t2)
   | Left (t, b) -> Or (infer_type env t, b)
   | Right (a, t) -> Or (a, infer_type env t)
   | Case (t, x, u, y, v) -> (
       match infer_type env t with
-      | Or (a, b) -> (
-          match
+      | Or (a, b) ->
+          let c1, c2 =
             (infer_type ((x, a) :: env) u, infer_type ((y, b) :: env) v)
-          with
-          | c1, c2 when c1 = c2 -> c1
-          | _ -> raise Type_error)
-      | _ -> raise Type_error)
+          in
+          if c1 = c2 then c1
+          else (
+            if debug then (
+              print_endline (raw_of_ty c1);
+              print_endline (raw_of_ty c2));
+            raise Type_error)
+      | terr ->
+          if debug then print_endline (raw_of_ty terr);
+          raise Type_error)
   | Fst t -> (
-      match infer_type env t with And (t1, _) -> t1 | _ -> raise Type_error)
+      match infer_type env t with
+      | And (t1, _) -> t1
+      | terr ->
+          if debug then print_endline (raw_of_ty terr);
+          raise Type_error)
   | Snd t -> (
-      match infer_type env t with And (_, t2) -> t2 | _ -> raise Type_error)
+      match infer_type env t with
+      | And (_, t2) -> t2
+      | terr ->
+          if debug then print_endline (raw_of_ty terr);
+          raise Type_error)
   | Unit -> True
   | Absurd (t, a) -> (
-      match infer_type env t with False -> a | _ -> raise Type_error)
+      match infer_type env t with
+      | False -> a
+      | terr ->
+          if debug then print_endline (raw_of_ty terr);
+          raise Type_error)
   | Zero -> Nat
   | Succ n -> if infer_type env n = Nat then Nat else raise Type_error
-  | Rec (n, init, here) -> (
-      match here with
-      | Abs (_, tx, Abs (_, ty, v))
-        when infer_type env n = Nat && infer_type env init = Nat && tx = Nat ->
-          let tv = infer_type env v in
-          if tv = ty then tv else raise Type_error
-      | _ -> raise Type_error)
+  | Rec (n, init, here) ->
+      let tn = infer_type env n in
+      let tinit = infer_type env init in
+      if tn = Nat then (
+        match here with
+        | Abs (x, tx, Abs (y, ty, v)) ->
+            let tv = infer_type ((x, tx) :: (y, ty) :: env) v in
+            if tx = Nat && tv = ty && tinit = tv then tv
+            else (
+              if debug then (
+                print_endline "tx != Nat or tv != ty";
+                print_endline (raw_of_ty tv);
+                print_endline (raw_of_ty ty));
+              raise Type_error)
+        | _ ->
+            if debug then (
+              print_endline "did not get good form of heredite";
+              print_endline (string_of_tm here));
+            raise Type_error)
+      else (
+        if debug then (
+          print_endline "did not get tn=Nat or tinit=";
+          print_endline (raw_of_ty tn);
+          print_endline (raw_of_ty tinit));
+        raise Type_error)
 
-and check_type env t a = if infer_type env t <> a then raise Type_error
+and check_type env t a =
+  if infer_type env t <> a then (
+    print_endline (string_of_ty (infer_type env t) ^ " " ^ string_of_ty a);
+    raise Type_error)
 
 let () =
   assert (
@@ -178,7 +229,41 @@ let () =
       = TVar "s"
     with
     | Type_error -> true
-    | _ -> false)
+    | _ -> false);
+  assert (
+    try
+      infer_type
+        [ ("t", Nat); ("v", TVar "A"); ("u", TVar "A") ]
+        (Rec (Var "t", Var "u", Abs ("x", Nat, Abs ("y", TVar "A", Var "v"))))
+      = TVar "A"
+    with Type_error -> false);
+  assert (
+    try
+      let t =
+        infer_type
+          [ ("v", TVar "A") ]
+          (Abs
+             ( "t",
+               Nat,
+               Abs
+                 ( "u",
+                   TVar "A",
+                   Rec
+                     ( Var "t",
+                       Var "u",
+                       Abs ("x", Nat, Abs ("y", TVar "A", Var "v")) ) ) ))
+      in
+      if debug then print_endline (string_of_ty t);
+      t = Imp (Nat, Imp (TVar "A", TVar "A"))
+    with Type_error ->
+      print_endline "échec mission";
+      false)
+(*print_endline*)
+(*  (string_of_ty*)
+(*     (infer_type []*)
+(*        (tm_of_string*)
+(* "fun (n : Nat) -> (fun (m : Nat) -> rec(m, n, (fun (x : Nat) -> \*)
+   (*            (fun (y : Nat) -> suc ( y )))))")))*)
 
 let () =
   if debug then (
@@ -327,15 +412,28 @@ let rec prove env goal commands destination =
           Pair (x, y)
       | True -> Unit
       | Nat ->
-          if arg = "" then Zero
-          else if List.exists (fun (x, _) -> x = arg) env then
-            error "This variable is already in the environment."
+          if arg = "" then prove (("0", Nat) :: env) goal commands destination
+          else if List.exists (fun (x, tx) -> x = arg && tx = Nat) env then
+            prove (("suc ( " ^ arg ^ " )", Nat) :: env) Nat commands destination
           else
-            let t = prove ((arg, Nat) :: env) Nat commands destination in
-            Succ t
+            error
+              "Cannot introduce the successor of a variable that does not \
+               exist."
       | _ -> error "Don't know how to introduce this.")
   | "elim" -> (
       if arg = "" then error "Please provide an argument for elim."
+      else if String.contains arg '|' then
+        match String.split_on_char '|' arg with
+        | [ x; y ] ->
+            let t = prove env Nat commands destination in
+            let u = prove env goal commands destination in
+            let v =
+              prove
+                ((String.trim x, Nat) :: (String.trim y, goal) :: env)
+                goal commands destination
+            in
+            Rec (t, u, Abs (x, Nat, Abs (y, goal, v)))
+        | _ -> error "Please provide exactly two arguments"
       else
         let x, tx = List.find (fun (y, _) -> y = arg) env in
         match tx with
@@ -355,21 +453,6 @@ let rec prove env goal commands destination =
             in
             Case (tm_of_string arg, arg ^ raw_of_ty a, u, arg ^ raw_of_ty b, v)
         | False -> Absurd (Var x, goal)
-        | Nat -> (
-            if not (String.contains arg '|') then
-              error "Please input rank step x and step y in the form \"x | y\""
-            else
-              match String.split_on_char '|' arg with
-              | x :: y :: _ ->
-                  let t = prove env Nat commands destination in
-                  let u = prove env goal commands destination in
-                  let v =
-                    prove
-                      ((x, Nat) :: (y, goal) :: env)
-                      goal commands destination
-                  in
-                  Rec (t, u, Abs (x, Nat, Abs (y, goal, v)))
-              | _ -> error "Not enough arguments provided")
         (*      | Rec(n,init,here) ->*)
         (*      let t = prove env Nat commands destination in*)
         (*let u = prove env goal commands destination in*)

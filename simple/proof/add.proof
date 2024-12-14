@@ -1,0 +1,8 @@
+Nat => Nat => Nat
+intro n
+intro m
+elim x|y
+exact m
+exact n
+intro y
+exact suc ( y )

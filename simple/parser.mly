@@ -5,7 +5,7 @@ open Expr
 %token IMP AND OR TRUE FALSE NOT
 %token FUN TO CASE OF
 %token LPAR RPAR COLON COMMA BAR
-%token FST SND LEFT RIGHT ABSURD REC
+%token FST SND LEFT RIGHT ABSURD REC ZERO SUC
 %token <string> IDENT
 %token EOF
 %token NAT
@@ -38,6 +38,7 @@ tm:
   | atm                                    { $1 }
   | FUN LPAR IDENT COLON ty RPAR TO tm     { Abs ($3, $5, $8) }
   | CASE tm OF IDENT TO tm BAR IDENT TO tm { Case ($2, $4, $6, $8, $10) }
+  | REC LPAR tm COMMA tm COMMA tm RPAR     { Rec ($3, $5, $7) }
 
 /* An application */
 atm:
@@ -55,4 +56,5 @@ stm:
   | LEFT LPAR tm COMMA ty RPAR   { Left ($3, $5) }
   | RIGHT LPAR ty COMMA tm RPAR  { Right ($3, $5) }
   | ABSURD LPAR tm COMMA ty RPAR { Absurd ($3, $5) }
-  | REC LPAR tm COMMA tm COMMA tm RPAR { Rec ($3, $5, $7) }
+  | ZERO                         { Zero }
+  | SUC LPAR tm RPAR             { Succ ($3) }

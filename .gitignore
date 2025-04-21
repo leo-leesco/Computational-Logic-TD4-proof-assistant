@@ -2,3 +2,4 @@ _build
 report/report.pdf
 *~
 stl-full.svg
+.DS_Store

@@ -26,7 +26,7 @@ let rec to_string ex =
       "(fun (" ^ x ^ " : " ^ to_string tx ^ ") -> " ^ to_string t ^ ")"
   | Pi (x, a, b) ->
       "\u{03A0} (" ^ x ^ " : " ^ to_string a ^ ", " ^ to_string b ^ ")"
-  | _ -> raise (Invalid_argument "Not implemented")
+  | _ -> failwith "TODO"
 
 let () =
   if debug then (
@@ -60,7 +60,7 @@ let rec subst x t u =
   | Pi (y, ty, z) ->
       let y' = fresh_var () in
       Pi (y', subst x t ty, subst x t (subst y (Var y') z))
-  | _ -> raise (Invalid_argument "Not implemented")
+  | _ -> failwith "TODO"
 
 let () =
   let t = App (Var "x", Abs ("y", Type, Var "x")) in
@@ -200,7 +200,7 @@ let rec infer env t =
           raise
             (Type_error ("First argument is not a function : " ^ to_string t)))
   | Pi (_, _, _) -> Type
-  | _ -> raise (Invalid_argument "Not implemented")
+  | _ -> failwith "TODO"
 
 and check env t a =
   let t = infer env t in

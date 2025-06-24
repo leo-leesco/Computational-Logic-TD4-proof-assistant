@@ -1,6 +1,7 @@
 (ocamllex lexer)
+
 (ocamlyacc parser)
+
 (executable
  (name prover)
- (libraries str)
-)
+ (libraries str))

@@ -4,20 +4,6 @@ let of_string s = Parser.expr Lexer.token (Lexing.from_string s)
 let debug = false
 
 let rec to_string ex =
-  let extract_parts str =
-    let rec index_of_last_number s ?(idx = String.length str) () =
-      let is_digit c = c >= '0' && c <= '9' in
-      if s = "" || not (is_digit s.[String.length s - 1]) then idx
-      else
-        let lm1 = String.length s - 1 in
-        let s' = String.sub s 0 lm1 in
-        index_of_last_number s' ~idx:lm1 ()
-    in
-
-    let idx_number = index_of_last_number str () in
-    ( String.sub str 0 idx_number,
-      String.sub str idx_number (String.length str - idx_number) )
-  in
   match ex with
   | Type -> "Type"
   | Var v -> v

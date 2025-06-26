@@ -43,9 +43,14 @@ let rec infer_type ?(ctx : context = []) = function
   | App (t, u) -> (
       if debug then print_endline ("𝚪=" ^ string_of_context ctx);
       match infer_type ~ctx t with
-      | Imp (a, b) when a = infer_type ~ctx u -> b
+      | Imp (a, b) ->
+          check_type ~ctx u a;
+          b
       | _ -> raise Type_error)
   | Fn (x, a, t) -> Imp (a, infer_type ~ctx:((x, a) :: ctx) t)
+
+and check_type ?(ctx : context = []) t a : unit =
+  if not (infer_type ~ctx t = a) then raise Type_error
 
 let () =
   let test_infer =
@@ -87,9 +92,6 @@ let () =
     print_endline (string_of_ty (infer_type fail_mistyped_argument));
     failwith "This should not be typable"
   with Type_error -> ()
-
-let check_type ?(ctx : context = []) t a : unit =
-  if not (infer_type ~ctx t = a) then raise Type_error
 
 let () =
   let test_check = Fn ("x", T "A", Var "x") in

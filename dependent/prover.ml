@@ -235,6 +235,7 @@ let () =
         print_endline cmd;
         split ' ' cmd
       in
+
       match cmd with
       | "assume" ->
           let x, sa = split ':' arg in

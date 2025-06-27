@@ -5,6 +5,9 @@
  (modules proving)
  (libraries prover)
 )
+(executable
+  (name get_cwd)
+  (modules get_cwd))
 
 (library
   (name prover)

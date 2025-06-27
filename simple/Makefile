@@ -7,5 +7,6 @@ all: build
 
 build:
 	dune build
-test:
-	$(foreach p, $(PROOFS), cat $(p) | dune exec ./proving.exe)
+
+test: build
+	$(foreach p, $(PROOFS), cat $(p) | "$(ROOT)/proving.exe")

@@ -8,19 +8,50 @@ type var = string
 (** Term variables. *)
 
 (** Types. *)
-type ty = T of tvar | Imp of ty * ty
+type ty =
+  | T of tvar
+  | Imp of ty * ty
+  | And of ty * ty
+  | Or of ty * ty
+  | True
+  | False
 
-type tm = Var of var | App of tm * tm | Fn of var * ty * tm
+type tm =
+  | Var of var
+  | App of tm * tm
+  | Fn of var * ty * tm
+  | Pair of tm * tm
+  | Fst of tm
+  | Snd of tm
+  | Case of tm * tm * tm
+  | Left of tm
+  | Right of tm
+  | Unit
+  | Empty of tm
 
 let rec string_of_ty = function
   | T a -> a
   | Imp (a, b) -> "(" ^ string_of_ty a ^ " => " ^ string_of_ty b ^ ")"
+  | And (a, b) -> "(" ^ string_of_ty a ^ " ∧ " ^ string_of_ty b ^ ")"
+  | Or (a, b) -> "(" ^ string_of_ty a ^ " ∨ " ^ string_of_ty b ^ ")"
+  | True -> "⊤"
+  | False -> "⊥"
 
 let rec string_of_tm = function
   | Var x -> x
   | App (t, u) -> "(" ^ string_of_tm t ^ " " ^ string_of_tm u ^ ")"
   | Fn (x, a, t) ->
       "(fun (" ^ x ^ " : " ^ string_of_ty a ^ ") -> " ^ string_of_tm t ^ ")"
+  | Pair (t, u) -> "⟨" ^ string_of_tm t ^ ", " ^ string_of_tm u ^ "⟩"
+  | Fst t -> "𝛑₁(" ^ string_of_tm t ^ ")"
+  | Snd t -> "𝛑₂(" ^ string_of_tm t ^ ")"
+  | Case (t, u, v) ->
+      "case(" ^ string_of_tm t ^ " ? " ^ string_of_tm u ^ " : " ^ string_of_tm v
+      ^ ")"
+  | Left t -> "𝛊₁(" ^ string_of_tm t ^ ")"
+  | Right t -> "𝛊₂(" ^ string_of_tm t ^ ")"
+  | Unit -> "⟨⟩"
+  | Empty t -> "case(" ^ string_of_tm t ^ ")"
 
 let () =
   let test_ty = Imp (Imp (T "A", T "B"), Imp (T "A", T "D")) in
@@ -48,6 +79,13 @@ let rec infer_type ?(ctx : context = []) = function
           b
       | _ -> raise Type_error)
   | Fn (x, a, t) -> Imp (a, infer_type ~ctx:((x, a) :: ctx) t)
+  | Fst t -> (
+      match infer_type ~ctx t with And (a, b) -> a | _ -> raise Type_error)
+  | Snd t -> (
+      match infer_type ~ctx t with And (a, b) -> b | _ -> raise Type_error)
+  | Pair (t, u) -> And (infer_type ~ctx t, infer_type ~ctx u)
+  | Unit -> True
+  | Case (t, u, v) -> failwith "TODO"
 
 and check_type ?(ctx : context = []) t a : unit =
   if not (infer_type ~ctx t = a) then raise Type_error

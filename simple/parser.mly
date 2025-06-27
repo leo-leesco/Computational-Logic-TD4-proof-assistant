@@ -34,8 +34,8 @@ ty:
 /* A term */
 tm:
   | atm                                    { $1 }
-  | FUN LPAR IDENT COLON ty RPAR TO tm     { Abs ($3, $5, $8) }
-  | CASE tm OF IDENT TO tm BAR IDENT TO tm { Case ($2, $4, $6, $8, $10) }
+  | FUN LPAR IDENT COLON ty RPAR TO tm     { Fn ($3, $5, $8) }
+  | CASE tm OF tm BAR tm { Case ($2, $4, $6) }
 
 /* An application */
 atm:
@@ -52,4 +52,4 @@ stm:
   | LPAR tm COMMA tm RPAR        { Pair ($2, $4) }
   | LEFT LPAR tm COMMA ty RPAR   { Left ($3, $5) }
   | RIGHT LPAR ty COMMA tm RPAR  { Right ($3, $5) }
-  | ABSURD LPAR tm COMMA ty RPAR { Absurd ($3, $5) }
+  | ABSURD LPAR tm COMMA ty RPAR { Empty ($3, $5) }

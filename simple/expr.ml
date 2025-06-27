@@ -56,7 +56,7 @@ let rec string_of_tm = function
 
 let log_tm t = if log then print_endline (string_of_tm t)
 
-let () =
+let%test_unit "print" =
   let test_ty = Imp (Imp (T "A", T "B"), Imp (T "A", T "D")) in
   log_ty test_ty;
 

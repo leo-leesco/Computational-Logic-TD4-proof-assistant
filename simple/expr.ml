@@ -1,25 +1,23 @@
+open Sexplib.Std
+
+let compare_string = Stdlib.compare
 let log = true
 let debug = false && log
 
-type tvar = string
-(** Type variables. *)
-
-type var = string
-(** Term variables. *)
-
 (** Types. *)
 type ty =
-  | T of tvar
+  | T of string
   | Imp of ty * ty
   | And of ty * ty
   | Or of ty * ty
   | True
   | False
+[@@deriving sexp, compare]
 
 type tm =
-  | Var of var
+  | Var of string
   | App of tm * tm
-  | Fn of var * ty * tm
+  | Fn of string * ty * tm
   | Pair of tm * tm
   | Fst of tm
   | Snd of tm
@@ -28,6 +26,7 @@ type tm =
   | Right of ty * tm
   | Unit
   | Empty of tm * ty
+[@@deriving sexp, compare]
 
 let rec string_of_ty = function
   | T a -> a

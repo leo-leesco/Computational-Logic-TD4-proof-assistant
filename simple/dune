@@ -8,4 +8,7 @@
 
 (library
   (name prover)
-  (modules prover expr parser lexer))
+  (modules prover expr parser lexer)
+  (inline_tests)
+  (libraries base sexplib sexplib0)
+ (preprocess (pps ppx_inline_test ppx_assert ppx_sexp_conv ppx_compare)))

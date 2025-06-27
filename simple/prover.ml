@@ -8,7 +8,7 @@ module Expr = Expr
 let ty_of_string s = Parser.ty Lexer.token (Lexing.from_string s)
 let tm_of_string s = Parser.tm Lexer.token (Lexing.from_string s)
 
-type context = (var * ty) list
+type context = (string * ty) list
 
 let string_of_context ctx =
   List.map (fun (x, a) -> x ^ ": " ^ string_of_ty a) ctx |> String.concat ", "
@@ -48,8 +48,8 @@ let rec infer_type ?(ctx : context = []) = function
 and check_type ?(ctx : context = []) t a : unit =
   if not (infer_type ~ctx t = a) then raise Type_error
 
-let () =
-  let test_infer =
+let%test_unit "infer" =
+  let test =
     Fn
       ( "f",
         Imp (T "A", T "B"),
@@ -58,53 +58,55 @@ let () =
             Imp (T "B", T "C"),
             Fn ("x", T "A", App (Var "g", App (Var "f", Var "x"))) ) )
   in
-  let test_infer_type =
+  let test_type =
     Imp (Imp (T "A", T "B"), Imp (Imp (T "B", T "C"), Imp (T "A", T "C")))
   in
-  log_tm test_infer;
-  log_ty (infer_type test_infer);
-  log_ty test_infer_type;
-  assert (infer_type test_infer = test_infer_type);
+  log_tm test;
+  log_ty (infer_type test);
+  log_ty test_type;
+  [%test_eq: ty] (infer_type test) test_type
 
-  let fail_outside_ctx = Fn ("f", T "A", Var "x") in
-  (try
-     log_ty (infer_type fail_outside_ctx);
-     failwith "This should not be typable"
-   with Type_error -> ());
-
-  let fail_apply_not_function =
-    Fn ("f", T "A", Fn ("x", T "B", App (Var "f", Var "x")))
-  in
-  (try
-     log_ty (infer_type fail_apply_not_function);
-     failwith "This should not be typable"
-   with Type_error -> ());
-
-  let fail_mistyped_argument =
-    Fn ("f", Imp (T "A", T "B"), Fn ("x", T "B", App (Var "f", Var "x")))
-  in
+let%test_unit "outside_context" =
+  let fail = Fn ("f", T "A", Var "x") in
   try
-    log_ty (infer_type fail_mistyped_argument);
+    log_ty (infer_type fail);
     failwith "This should not be typable"
   with Type_error -> ()
 
-let () =
+let%test_unit "apply_not_function" =
+  let fail = Fn ("f", T "A", Fn ("x", T "B", App (Var "f", Var "x"))) in
+  try
+    log_ty (infer_type fail);
+    failwith "This should not be typable"
+  with Type_error -> ()
+
+let%test_unit "mistyped_argument" =
+  let fail =
+    Fn ("f", Imp (T "A", T "B"), Fn ("x", T "B", App (Var "f", Var "x")))
+  in
+  try
+    log_ty (infer_type fail);
+    failwith "This should not be typable"
+  with Type_error -> ()
+
+let%test_unit "check" =
   let test_check = Fn ("x", T "A", Var "x") in
   let test_check_type = Imp (T "A", T "A") in
   check_type test_check test_check_type;
 
   let fail_check_type = Imp (T "B", T "B") in
-  (try
-     check_type test_check fail_check_type;
-     failwith "󰘧x:A.x should not have type B -> B"
-   with Type_error -> ());
+  try
+    check_type test_check fail_check_type;
+    failwith "󰘧x:A.x should not have type B -> B"
+  with Type_error -> ()
 
+let%test_unit "no_type" =
   try
     check_type (Var "x") (T "A");
     failwith "x should not be typed, and not have type A"
   with Type_error -> ()
 
-let () =
+let%test_unit "and_comm" =
   let and_comm =
     Fn ("p", And (T "A", T "B"), Pair (Snd (Var "p"), Fst (Var "p")))
   in
@@ -112,13 +114,13 @@ let () =
   log_ty (infer_type and_comm);
   check_type and_comm and_comm_type
 
-let () =
+let%test_unit "top_ex" =
   let top_ex = Fn ("f", Imp (True, T "A"), App (Var "f", Unit)) in
   let top_ex_type = Imp (Imp (True, T "A"), T "A") in
   log_ty (infer_type top_ex);
   check_type top_ex top_ex_type
 
-let () =
+let%test_unit "disj_comm" =
   let disj_comm =
     Fn
       ( "p",
@@ -132,7 +134,7 @@ let () =
   log_ty (infer_type disj_comm);
   check_type disj_comm disj_comm_type
 
-let () =
+let%test_unit "incoh_elim" =
   let incoh_elim =
     Fn
       ( "p",
@@ -143,7 +145,7 @@ let () =
   log_ty (infer_type incoh_elim);
   check_type incoh_elim incoh_elim_type
 
-let () =
+let%test_unit "Parsing types" =
   let l =
     [
       "A => B";
@@ -165,7 +167,7 @@ let () =
           (string_of_ty (ty_of_string s)))
       l
 
-let () =
+let%test_unit "Parsing terms" =
   let l =
     [
       "t u v";

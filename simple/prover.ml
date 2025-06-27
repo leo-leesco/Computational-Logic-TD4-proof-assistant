@@ -195,3 +195,5 @@ type sequent = context * ty
 let string_of_sequent (seq : sequent) =
   let ctx, a = seq in
   string_of_context ctx ^ " ⊢ " ^ string_of_ty a
+
+let log_ctx ctx = if log then print_endline (string_of_context ctx)

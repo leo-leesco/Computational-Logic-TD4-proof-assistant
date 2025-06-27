@@ -1,13 +1,13 @@
 open Prover
 open Expr
 
-let rec prove ctx a =
-  print_endline (string_of_sequent (ctx, a));
+let rec prove ctx formula =
+  print_endline (string_of_sequent (ctx, formula));
   print_string "? ";
   flush_all ();
   let error e =
     print_endline e;
-    prove ctx a
+    prove ctx formula
   in
   let cmd, arg =
     let cmd = input_line stdin in
@@ -19,7 +19,7 @@ let rec prove ctx a =
   in
   match cmd with
   | "intro" -> (
-      match a with
+      match formula with
       | Imp (a, b) ->
           if arg = "" then error "Please provide an argument for intro."
           else
@@ -29,7 +29,19 @@ let rec prove ctx a =
       | _ -> error "Don't know how to introduce this.")
   | "exact" ->
       let t = tm_of_string arg in
-      if infer_type ~ctx t <> a then error "Not the right type." else t
+      if infer_type ~ctx t <> formula then error "Not the right type." else t
+  | "elim" -> (
+      if arg = "" then error "Please provide an argument for elim."
+      else
+        match List.assoc arg ctx with
+        | Imp (a, b) ->
+            if b <> formula then
+              error "This arrow conclusion does not match the current goal"
+            else
+              let t = Var arg in
+              let u = prove ctx a in
+              App (t, u)
+        | _ -> error "Don't know how to eliminate this.")
   | cmd -> error ("Unknown command: " ^ cmd)
 
 let () =

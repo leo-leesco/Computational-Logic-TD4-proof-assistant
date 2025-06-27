@@ -1,5 +1,11 @@
 (ocamllex lexer)
 (ocamlyacc parser)
 (executable
- (name prover)
+ (name proving)
+ (modules proving)
+ (libraries prover)
 )
+
+(library
+  (name prover)
+  (modules prover expr parser lexer))

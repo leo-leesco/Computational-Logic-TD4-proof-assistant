@@ -22,7 +22,7 @@ open Expr
 
 /* A type */
 ty:
-  | IDENT        { TVar $1 }
+  | IDENT        { T $1 }
   | ty IMP ty    { Imp ($1, $3) }
   | ty AND ty    { And ($1, $3) }
   | ty OR ty     { Or ($1, $3) }

@@ -1,5 +1,5 @@
 all:
-	dune exec ./prover.exe
+	dune exec ./proving.exe
 
 PROOFS = $(wildcard proofs/*.proof)
 

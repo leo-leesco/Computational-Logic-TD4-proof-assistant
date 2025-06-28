@@ -37,6 +37,12 @@ In case the goal is a conjunction type, divides the proof into two subproofs of 
 
 This is the *conjunction introduction* rule.
 
+#### `left` and `right`
+
+In case the goal is a disjunction, allows to prove only the left or right goal.
+
+This are the *disjunction introduction* rules.
+
 ### `elim`
 
 Tries to prove the goal by using connectors that could have led to the current goal (basically backtracking).
@@ -59,4 +65,8 @@ Provide an identifier whose type is a conjunction type and either its first or s
 
 This are the *left* and *right elimination* rules.
 
+#### False
 
+In case an identifier is of type `False`, prove the current goal.
+
+This is the *false elimination* rule.

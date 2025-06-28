@@ -32,8 +32,10 @@ let rec prove ctx formula =
       | And (a, b) -> Pair (prove ctx a, prove ctx b)
       | _ -> error "Don't know how to introduce this.")
   | "exact" ->
-      let t = tm_of_string arg in
-      if infer_type ~ctx t <> formula then error "Not the right type." else t
+      if formula = True then Unit
+      else
+        let t = tm_of_string arg in
+        if infer_type ~ctx t <> formula then error "Not the right type." else t
   | "elim" -> (
       if arg = "" then error "Please provide an argument for elim."
       else

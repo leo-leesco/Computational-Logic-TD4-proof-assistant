@@ -17,6 +17,10 @@ Requires an element of the context whose type matches the current goal.
 
 This is the *axiom* rule.
 
+In case the goal is `true` or `⊤`, ends the proof.
+
+This is the *truth introduction* rule.
+
 ### `intro`
 
 In presence of a connector, we can prove it as the result of an introduction rule (which "creates" it).
@@ -27,7 +31,7 @@ In case the goal is an arrow, introduces a new identifier which matches its doma
 
 This is the *arrow introduction* rule.
 
-#### `intro`
+#### Conjunction
 
 In case the goal is a conjunction type, divides the proof into two subproofs of both types of the pair.
 
@@ -54,3 +58,5 @@ This is the *full arrow elimination* rule.
 Provide an identifier whose type is a conjunction type and either its first or second component matches the current goal.
 
 This are the *left* and *right elimination* rules.
+
+

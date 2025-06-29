@@ -44,6 +44,12 @@ let rec infer_type ?(ctx : context = []) = function
   | Empty (t, a) ->
       check_type ~ctx t False;
       a
+  | Zero -> Nat
+  | Succ n when infer_type ~ctx n = Nat -> Nat
+  | Rec (_, init, Fn (_, Nat, Fn (_, a, t)))
+    when infer_type ~ctx t = a && infer_type ~ctx init = infer_type ~ctx t ->
+      Imp (Nat, Imp (a, Imp (Nat, Imp (a, a))))
+  | _ -> raise Type_error
 
 and check_type ?(ctx : context = []) t a : unit =
   if not (infer_type ~ctx t = a) then raise Type_error

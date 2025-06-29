@@ -12,6 +12,7 @@ type ty =
   | Or of ty * ty
   | True
   | False
+  | Nat
 [@@deriving sexp, compare]
 
 type tm =
@@ -26,6 +27,9 @@ type tm =
   | Right of ty * tm
   | Unit
   | Empty of tm * ty
+  | Zero
+  | Succ of tm
+  | Rec of tm * tm * tm
 [@@deriving sexp, compare]
 
 let rec string_of_ty = function
@@ -35,6 +39,7 @@ let rec string_of_ty = function
   | Or (a, b) -> "(" ^ string_of_ty a ^ " ∨ " ^ string_of_ty b ^ ")"
   | True -> "⊤"
   | False -> "⊥"
+  | Nat -> "ℕ"
 
 let log_ty a = if log then print_endline (string_of_ty a)
 
@@ -53,6 +58,11 @@ let rec string_of_tm = function
   | Right (a, t) -> "𝛊₂" ^ string_of_ty a ^ "(" ^ string_of_tm t ^ ")"
   | Unit -> "⟨⟩"
   | Empty (t, a) -> "case" ^ string_of_ty a ^ "(" ^ string_of_tm t ^ ")"
+  | Zero -> "0"
+  | Succ n -> "succ(" ^ string_of_tm n ^ ")"
+  | Rec (n, init, successor) ->
+      "rec(" ^ string_of_tm n ^ ", " ^ string_of_tm init ^ ", "
+      ^ string_of_tm successor ^ ")"
 
 let log_tm t = if log then print_endline (string_of_tm t)
 

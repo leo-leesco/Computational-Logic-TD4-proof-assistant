@@ -8,6 +8,9 @@ open Expr
 %token FST SND LEFT RIGHT ABSURD
 %token <string> IDENT
 %token EOF
+%token NAT
+%token REC
+%token ZERO SUCC
 
 %right IMP
 %right OR
@@ -30,12 +33,14 @@ ty:
   | TRUE         { True }
   | FALSE        { False }
   | LPAR ty RPAR { $2 }
+  | NAT          { Nat }
 
 /* A term */
 tm:
   | atm                                    { $1 }
   | FUN LPAR IDENT COLON ty RPAR TO tm     { Fn ($3, $5, $8) }
-  | CASE tm OF tm BAR tm { Case ($2, $4, $6) }
+  | CASE tm OF tm BAR tm                   { Case ($2, $4, $6) }
+  | REC tm OF tm OF tm                     { Rec ($2, $4, $6) }
 
 /* An application */
 atm:
@@ -49,6 +54,8 @@ stm:
   | FST stm                      { Fst $2 }
   | SND stm                      { Snd $2 }
   | LPAR RPAR                    { Unit }
+  | ZERO                         { Zero }
+  | SUCC stm                     { Succ $2 }
   | LPAR tm COMMA tm RPAR        { Pair ($2, $4) }
   | LEFT LPAR tm COMMA ty RPAR   { Left ($3, $5) }
   | RIGHT LPAR ty COMMA tm RPAR  { Right ($3, $5) }

@@ -46,8 +46,10 @@ let rec infer_type ?(ctx : context = []) = function
       a
   | Zero -> Nat
   | Succ n when infer_type ~ctx n = Nat -> Nat
-  | Rec (_, init, Fn (_, Nat, Fn (_, a, t)))
-    when infer_type ~ctx t = a && infer_type ~ctx init = infer_type ~ctx t ->
+  | Rec (sn, init, Fn (_, Nat, Fn (_, a, t)))
+    when infer_type ~ctx sn = Nat
+         && infer_type ~ctx t = a
+         && infer_type ~ctx init = infer_type ~ctx t ->
       Imp (Nat, Imp (a, Imp (Nat, Imp (a, a))))
   | _ -> raise Type_error
 

@@ -30,12 +30,15 @@ let rec prove ctx goal =
             let t = prove ((x, a) :: ctx) b in
             Fn (x, a, t)
       | And (a, b) -> Pair (prove ctx a, prove ctx b)
+      | Nat -> Succ (prove ctx Nat)
       | _ -> error "Don't know how to introduce this.")
-  | "exact" ->
-      if goal = True then Unit
-      else
-        let t = tm_of_string arg in
-        if infer_type ~ctx t <> goal then error "Not the right type." else t
+  | "exact" -> (
+      match goal with
+      | True -> Unit
+      | Nat -> Zero
+      | _ ->
+          let t = tm_of_string arg in
+          if infer_type ~ctx t <> goal then error "Not the right type." else t)
   | "elim" -> (
       if arg = "" then error "Please provide an argument for elim."
       else
@@ -48,15 +51,29 @@ let rec prove ctx goal =
               let u = prove ctx a in
               App (t, u)
         | Or (a, b) ->
-            (* print_endline "Provide two new identifiers for the subcases"; *)
-            (* let x = input_line stdin in *)
-            (* let y = input_line stdin in *)
             Case
               ( Var arg,
                 Fn (arg, a, prove ((arg, a) :: ctx) goal),
                 Fn (arg, b, prove ((arg, b) :: ctx) goal) )
         | False -> Empty (Var arg, goal)
-        | _ -> error "Don't know how to eliminate this.")
+        | t -> (
+            try
+              print_endline "Please provide the variable we recurse on";
+              let sn = prove ctx Nat in
+
+              print_endline "Please provide the value of the base case";
+              let base_case = prove ctx t in
+
+              print_endline
+                "Please provide identifiers for the predecessor and the value \
+                 at this step";
+              let n = input_line stdin in
+              commands := n :: !commands;
+              let y = input_line stdin in
+              commands := y :: !commands;
+              let recursor = prove ((n, Nat) :: (y, t) :: ctx) t in
+              Rec (sn, base_case, recursor)
+            with _ -> error "Don't know how to eliminate this."))
   | "cut" ->
       if arg = "" then error "Please provide an argument for cut."
       else
@@ -82,6 +99,7 @@ let rec prove ctx goal =
       match goal with
       | Or (a, b) -> Right (a, prove ctx b)
       | _ -> error "The goal is not a disjunction.")
+  | "abort" -> Unit
   | cmd -> error ("Unknown command: " ^ cmd)
 
 let () =
@@ -92,11 +110,11 @@ let () =
   print_endline "Let's prove it.";
   let t = prove [] a in
   print_endline "done.";
+  print_endline "Commands :";
+  print_endline (String.concat "\n" (List.rev !commands));
   print_endline "Proof term is";
   print_endline (string_of_tm t);
   print_string "Typechecking... ";
   flush_all ();
-  assert (infer_type t = a);
-  print_endline "ok.";
-  print_endline "Commands :";
-  print_endline (String.concat "\n" (List.rev !commands))
+  let t = infer_type t in
+  if t = a then print_endline "ok." else print_endline (string_of_ty t)

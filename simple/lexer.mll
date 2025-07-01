@@ -10,10 +10,13 @@ rule token = parse
   | "¬"      { NOT }
   | "fun"    { FUN }
   | "λ"      { FUN }
+  | "󰘧"      { FUN }
   | "fst"    { FST }
   | "π₁"     { FST }
+  | "𝛑₁"     { FST }
   | "snd"    { SND }
   | "π₂"     { SND }
+  | "𝛑₂"     { SND }
   | "case"   { CASE }
   | "of"     { OF }
   | "left"   { LEFT }
@@ -37,9 +40,12 @@ rule token = parse
   | "->"     { TO }
   | "→"      { TO }
   | "Nat"    { NAT }
+  | "ℕ"      { NAT }
   | "Rec"    { REC }
+  | "rec"    { REC }
   | "Zero"   { ZERO }
   | "Succ"   { SUCC }
+  | "succ"   { SUCC }
   | (['A'-'Z''a'-'z''0'-'9']+ as s) { IDENT s }
   | space+ { token lexbuf }
   | "\n" { new_line lexbuf; token lexbuf }

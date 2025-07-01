@@ -34,7 +34,7 @@ type tm =
 
 let rec string_of_ty = function
   | T a -> a
-  | Imp (a, b) -> "(" ^ string_of_ty a ^ " => " ^ string_of_ty b ^ ")"
+  | Imp (a, b) -> "(" ^ string_of_ty a ^ " ⇒ " ^ string_of_ty b ^ ")"
   | And (a, b) -> "(" ^ string_of_ty a ^ " ∧ " ^ string_of_ty b ^ ")"
   | Or (a, b) -> "(" ^ string_of_ty a ^ " ∨ " ^ string_of_ty b ^ ")"
   | True -> "⊤"
@@ -47,7 +47,7 @@ let rec string_of_tm = function
   | Var x -> x
   | App (t, u) -> "(" ^ string_of_tm t ^ " " ^ string_of_tm u ^ ")"
   | Fn (x, a, t) ->
-      "(fun (" ^ x ^ " : " ^ string_of_ty a ^ ") -> " ^ string_of_tm t ^ ")"
+      "(λ(" ^ x ^ " : " ^ string_of_ty a ^ ") -> " ^ string_of_tm t ^ ")"
   | Pair (t, u) -> "⟨" ^ string_of_tm t ^ ", " ^ string_of_tm u ^ "⟩"
   | Fst t -> "𝛑₁(" ^ string_of_tm t ^ ")"
   | Snd t -> "𝛑₂(" ^ string_of_tm t ^ ")"
@@ -57,7 +57,7 @@ let rec string_of_tm = function
   | Left (t, b) -> "𝛊₁" ^ string_of_ty b ^ "(" ^ string_of_tm t ^ ")"
   | Right (a, t) -> "𝛊₂" ^ string_of_ty a ^ "(" ^ string_of_tm t ^ ")"
   | Unit -> "⟨⟩"
-  | Empty (t, a) -> "case" ^ string_of_ty a ^ "(" ^ string_of_tm t ^ ")"
+  | Empty (t, a) -> "absurd" ^ string_of_ty a ^ "(" ^ string_of_tm t ^ ")"
   | Zero -> "0"
   | Succ n -> "succ(" ^ string_of_tm n ^ ")"
   | Rec (n, init, successor) ->

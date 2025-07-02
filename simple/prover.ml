@@ -13,21 +13,20 @@ type context = (string * ty) list
 let string_of_context ctx =
   List.map (fun (x, a) -> x ^ ": " ^ string_of_ty a) ctx |> String.concat ", "
 
-let log_ctx ctx = if log then print_endline (string_of_context ctx)
+let log_ctx ctx = if debug then print_endline ("𝚪=" ^ string_of_context ctx)
 
 exception Type_error
 
 let rec infer_type ?(ctx : context = []) = function
   | Var x -> ( try List.assoc x ctx with Not_found -> raise Type_error)
   | App (t, u) -> (
-      if debug then (
-        print_string "𝚪=";
-        log_ctx ctx);
       match infer_type ~ctx t with
       | Imp (a, b) ->
           check_type ~ctx u a;
           b
-      | _ -> raise Type_error)
+      | _ ->
+          log_ctx ctx;
+          raise Type_error)
   | Fn (x, a, t) -> Imp (a, infer_type ~ctx:((x, a) :: ctx) t)
   | Pair (t, u) -> And (infer_type ~ctx t, infer_type ~ctx u)
   | Fst t -> (
@@ -45,16 +44,27 @@ let rec infer_type ?(ctx : context = []) = function
       check_type ~ctx t False;
       a
   | Zero -> Nat
-  | Succ n when infer_type ~ctx n = Nat -> Nat
-  | Rec (sn, init, Fn (_, Nat, Fn (_, a, t)))
-    when infer_type ~ctx sn = Nat
-         && infer_type ~ctx t = a
-         && infer_type ~ctx init = infer_type ~ctx t ->
-      Imp (Nat, Imp (a, Imp (Nat, Imp (a, a))))
-  | _ -> raise Type_error
+  | Succ n ->
+      check_type ~ctx n Nat;
+      Nat
+  | Rec (sn, init, Fn (n, Nat, Fn (prev_value, a, t)))
+    when log_ctx ctx;
+         check_type ~ctx (Var sn) Nat;
+         check_type ~ctx:((n, Nat) :: (prev_value, a) :: ctx) t a;
+         check_type ~ctx init a;
+         true ->
+      a
+  | _ ->
+      log_ctx ctx;
+      raise Type_error
 
 and check_type ?(ctx : context = []) t a : unit =
-  if not (infer_type ~ctx t = a) then raise Type_error
+  let typ = infer_type ~ctx t in
+  if not (typ = a) then (
+    log_ctx ctx;
+    log_tm t;
+    log_ty typ;
+    raise Type_error)
 
 let%test_unit "infer" =
   let test =
@@ -204,4 +214,35 @@ let string_of_sequent (seq : sequent) =
   let ctx, a = seq in
   string_of_context ctx ^ " ⊢ " ^ string_of_ty a
 
-let log_ctx ctx = if log then print_endline (string_of_context ctx)
+let log_seq seq = if log then print_endline (string_of_sequent seq)
+
+let%test_unit "Recursor typing" =
+  let idn = Rec ("x", Zero, Fn ("x1", Nat, Fn ("vx1", Nat, Var "vx1"))) in
+  let ctx = [ ("x", Nat) ] in
+  log_ty (infer_type ~ctx idn);
+  check_type ~ctx idn Nat
+
+let%test_unit "Parsing natural constructors" =
+  let typ = [ "Nat"; "ℕ" ] in
+  List.iter log_ty (List.map ty_of_string typ);
+
+  let tms =
+    [
+      "Zero";
+      "zero";
+      "succ(Zero)";
+      "rec(x,Zero,Zero)";
+      "rec(x,Zero,(fun(x:Nat)->(fun(y:Nat) -> (x y))))";
+    ]
+  in
+  List.iter log_tm (List.map tm_of_string tms)
+
+let%test_unit "Parsing add" =
+  let add =
+    tm_of_string
+      "(fun (x : Nat) -> (fun (y : Nat) -> rec(y, x, (fun (ym1 : Nat) -> (fun \
+       (xpym1 : Nat) -> succ( xpym1 ))))))"
+  in
+  log_tm add;
+  log_ty (infer_type add);
+  check_type add Nat

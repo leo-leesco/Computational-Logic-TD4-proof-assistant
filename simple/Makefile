@@ -13,3 +13,6 @@ test: build
 	  echo ">> Running on $$p"; \
 	  cat "$$p" | "$(ROOT)/proving.exe"; \
 	done
+
+%:
+	cat proofs/$@.proof - | "$(ROOT)/proving.exe"

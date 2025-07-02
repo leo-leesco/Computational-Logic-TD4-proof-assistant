@@ -29,7 +29,7 @@ type tm =
   | Empty of tm * ty
   | Zero
   | Succ of tm
-  | Rec of tm * tm * tm
+  | Rec of string * tm * tm
 [@@deriving sexp, compare]
 
 let rec string_of_ty = function
@@ -61,8 +61,8 @@ let rec string_of_tm = function
   | Zero -> "0"
   | Succ n -> "succ(" ^ string_of_tm n ^ ")"
   | Rec (n, init, successor) ->
-      "rec(" ^ string_of_tm n ^ ", " ^ string_of_tm init ^ ", "
-      ^ string_of_tm successor ^ ")"
+      "rec(" ^ n ^ ", " ^ string_of_tm init ^ ", " ^ string_of_tm successor
+      ^ ")"
 
 let log_tm t = if log then print_endline (string_of_tm t)
 

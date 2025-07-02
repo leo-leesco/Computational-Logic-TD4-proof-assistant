@@ -44,6 +44,7 @@ rule token = parse
   | "Rec"    { REC }
   | "rec"    { REC }
   | "Zero"   { ZERO }
+  | "zero"   { ZERO }
   | "Succ"   { SUCC }
   | "succ"   { SUCC }
   | (['A'-'Z''a'-'z''0'-'9']+ as s) { IDENT s }

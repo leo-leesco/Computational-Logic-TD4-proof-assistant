@@ -15,11 +15,13 @@ cat <proof> | dune exec ./proving.exe
 
 Requires an element of the context whose type matches the current goal.
 
-This is the *axiom* rule.
+This is the *axiom* rule in case you provide an identifier, and plugs the expression provided in the hole in case a fully well-formed expression is provided.
 
 In case the goal is `true` or `⊤`, ends the proof.
 
 This is the *truth introduction* rule.
+
+In case the goal is a natural number, ends the proof with `Zero`. Note that providing an identifier here uses the regular tactic.
 
 ### `intro`
 
@@ -42,6 +44,12 @@ This is the *conjunction introduction* rule.
 In case the goal is a disjunction, allows to prove only the left or right goal.
 
 This are the *disjunction introduction* rules.
+
+#### `Succ(n)`
+
+In case the goal is a natural number, asks to prove the predecessor of the current goal.
+
+This is the *successor introduction* rule.
 
 ### `elim`
 
@@ -70,3 +78,9 @@ This are the *left* and *right elimination* rules.
 In case an identifier is of type `False`, prove the current goal.
 
 This is the *false elimination* rule.
+
+#### `Rec`
+
+In case the provided identifier's type matches the current goal but no other rule above, proves the recurrence principle on natural numbers.
+
+This is the *natural recurrence principle elimination* rule.

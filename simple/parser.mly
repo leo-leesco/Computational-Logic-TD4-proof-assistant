@@ -40,7 +40,7 @@ tm:
   | atm                                    { $1 }
   | FUN LPAR IDENT COLON ty RPAR TO tm     { Fn ($3, $5, $8) }
   | CASE tm OF tm BAR tm                   { Case ($2, $4, $6) }
-  | REC tm OF tm OF tm                     { Rec ($2, $4, $6) }
+  | REC LPAR IDENT COMMA tm COMMA tm RPAR     { Rec ($3, $5, $7) }
 
 /* An application */
 atm:

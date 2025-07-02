@@ -30,12 +30,14 @@ let rec prove ctx goal =
             let t = prove ((x, a) :: ctx) b in
             Fn (x, a, t)
       | And (a, b) -> Pair (prove ctx a, prove ctx b)
-      | Nat -> Succ (prove ctx Nat)
+      | Nat ->
+          if arg = "" then error "Please provide an argument for intro."
+          else Succ (prove ((arg, Nat) :: ctx) Nat)
       | _ -> error "Don't know how to introduce this.")
   | "exact" -> (
       match goal with
       | True -> Unit
-      | Nat -> Zero
+      | Nat when arg = "" -> Zero
       | _ ->
           let t = tm_of_string arg in
           if infer_type ~ctx t <> goal then error "Not the right type." else t)
@@ -58,9 +60,6 @@ let rec prove ctx goal =
         | False -> Empty (Var arg, goal)
         | t -> (
             try
-              print_endline "Please provide the variable we recurse on";
-              let sn = prove ctx Nat in
-
               print_endline "Please provide the value of the base case";
               let base_case = prove ctx t in
 
@@ -71,8 +70,10 @@ let rec prove ctx goal =
               commands := n :: !commands;
               let y = input_line stdin in
               commands := y :: !commands;
-              let recursor = prove ((n, Nat) :: (y, t) :: ctx) t in
-              Rec (sn, base_case, recursor)
+              let recursor =
+                Fn (n, Nat, Fn (y, t, prove ((n, Nat) :: (y, t) :: ctx) t))
+              in
+              Rec (arg, base_case, recursor)
             with _ -> error "Don't know how to eliminate this."))
   | "cut" ->
       if arg = "" then error "Please provide an argument for cut."
@@ -117,4 +118,8 @@ let () =
   print_string "Typechecking... ";
   flush_all ();
   let t = infer_type t in
-  if t = a then print_endline "ok." else print_endline (string_of_ty t)
+  if t = a then print_endline "ok."
+  else
+    print_endline
+      ("Got (a well-formed type) " ^ string_of_ty t ^ " instead of "
+     ^ string_of_ty a)

@@ -57,6 +57,25 @@ let%test "var2 𝝰-equiv" = not (alpha (Var "x") (Var "y"))
 let%test "abs 𝝰-equiv" =
   alpha (Abs ("y", Var "A", Var "y")) (Abs ("x", Var "A", Var "x"))
 
+let%test "abs 𝝰-equiv" =
+  alpha
+    (Abs
+       ("x", Var "A", App (Var "x", Abs ("x", Var "A", App (Var "x", Var "y")))))
+    (Abs
+       ("z", Var "A", App (Var "z", Abs ("x", Var "A", App (Var "x", Var "y")))))
+
+let%test "abs 𝝰-equiv" =
+  not
+    (alpha
+       (Abs
+          ( "x",
+            Var "A",
+            App (Var "x", Abs ("x", Var "A", App (Var "x", Var "y"))) ))
+       (Abs
+          ( "y",
+            Var "A",
+            App (Var "y", Abs ("x", Var "A", App (Var "x", Var "y"))) )))
+
 let%test "subst 𝝰-equiv" =
   alpha
     (subst "x" (Var "y") (Abs ("x", Var "A", Var "x")))

@@ -62,3 +62,23 @@ let%test "subst 𝝰-equiv" =
     (subst "x" (Var "y") (Abs ("x", Var "A", Var "x")))
     (Abs ("x", Var "A", Var "x"))
 
+type context = (string * (expr * expr option)) list
+(** each element of the context has a [string] identifier, an [expr] type and an
+    [expr option] value *)
+
+let string_of_context ctx =
+  List.map
+    (fun (x, (a, t)) ->
+      x ^ " : " ^ to_string a
+      ^ match t with Some t -> " = " ^ to_string t | None -> "")
+    ctx
+  |> String.concat "\n"
+
+let%expect_test "Contexts" =
+  let ctx = [ ("x", (Var "A", None)); ("x", (Var "A", Some (Var "t"))) ] in
+  print_endline (string_of_context ctx);
+  [%expect {|
+    x : A
+    x : A = t
+    |}]
+

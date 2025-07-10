@@ -3,14 +3,14 @@
 (executable
  (name proving)
  (modules proving)
- (libraries prover)
+ (libraries simple_prover)
 )
 (executable
   (name get_cwd)
   (modules get_cwd))
 
 (library
-  (name prover)
+  (name simple_prover)
   (modules prover expr parser lexer)
   (inline_tests)
   (libraries base sexplib sexplib0)

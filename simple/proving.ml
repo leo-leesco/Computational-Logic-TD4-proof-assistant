@@ -1,5 +1,6 @@
-open Prover
+open Simple_prover
 open Expr
+open Prover
 
 let commands = ref []
 

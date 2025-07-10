@@ -1,0 +1,40 @@
+Nat => Nat
+cut (Nat /\ Nat) => (Nat /\ Nat)
+intro p
+intro
+snd p
+cut Nat
+snd p
+intro p
+intro p
+exact p
+intro predfun
+cut Nat => ((Nat /\ Nat) => (Nat /\ Nat)) => (Nat /\ Nat) => (Nat /\ Nat)
+intro n
+intro f
+intro p
+elim p
+intro
+exact
+exact
+n1
+fn1p
+elim f
+exact fn1p
+intro iter
+intro n
+cut (((ℕ ∧ ℕ) ⇒ (ℕ ∧ ℕ)) ⇒ ((ℕ ∧ ℕ) ⇒ (ℕ ∧ ℕ)))
+elim iter
+exact n
+intro itern
+cut ((ℕ ∧ ℕ) ⇒ (ℕ ∧ ℕ))
+elim itern
+exact predfun
+intro iternpredfun
+cut (ℕ ∧ ℕ)
+elim iternpredfun
+intro
+exact
+exact
+intro p
+fst p

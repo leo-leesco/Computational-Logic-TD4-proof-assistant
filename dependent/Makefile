@@ -1,7 +1,18 @@
-all:
-	dune build
+ROOT = $(shell dune exec ./get_cwd.exe)
 
 PROOFS = $(wildcard proofs/*.proof)
 
-test:
-	$(foreach p, $(PROOFS), cat $(p) | dune exec ./prover.exe)
+all: build
+	"$(ROOT)/proving.exe"
+
+build:
+	dune build
+
+test: build
+	@for p in $(PROOFS); do \
+	  echo ">> Running on $$p"; \
+	  cat "$$p" | "$(ROOT)/proving.exe"; \
+	done
+
+%:
+	cat proofs/$@.proof - | "$(ROOT)/proving.exe"

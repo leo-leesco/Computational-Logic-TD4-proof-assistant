@@ -82,3 +82,16 @@ let%expect_test "Contexts" =
     x : A = t
     |}]
 
+let rec normalize ctx = function
+  | Type -> Type
+  | Var x -> Var x
+  | Abs (x, a, t) -> Abs (x, normalize ctx a, normalize ctx t)
+  | Pi (x, a, t) -> Pi (x, normalize ctx a, normalize ctx t)
+  | App (Abs (x, _a, t), u) ->
+      subst x (normalize ctx u) (normalize ctx t)
+      (* [normalize] should only be called in this case when [u:_a] *)
+  | App (t, u) -> App (normalize ctx t, normalize ctx u)
+
+let conv ctx t u = alpha (normalize ctx t) (normalize ctx u)
+
+exception Type_error of string

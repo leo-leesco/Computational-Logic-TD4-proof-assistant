@@ -2,6 +2,8 @@ open Dependent_prover
 open Expr
 open Prover
 
+let debug = false
+
 let () =
   let env = ref [] in
   let loop = ref true in
@@ -20,7 +22,7 @@ let () =
       let cmd, arg =
         let cmd = input_line stdin in
         output_string file (cmd ^ "\n");
-        print_endline cmd;
+        if debug then print_endline cmd;
         split ' ' cmd
       in
       match cmd with

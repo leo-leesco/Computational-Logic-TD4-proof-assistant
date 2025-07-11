@@ -99,13 +99,53 @@ let%expect_test "Contexts" =
   [%expect {|
     x : A
     x : A = t
-    |}]
+  |}]
+
+exception Type_error of string
+
+let rec infer ctx = function
+  | Type -> Type
+  | Var x -> fst (List.assoc x ctx)
+  | Abs (x, a, t) -> Pi (x, a, infer ((x, (a, None)) :: ctx) t)
+  | Pi (_, _, _) -> Type
+  | App (t, u) -> (
+      let ttype = infer ctx t in
+      match ttype with
+      | Pi (x, a, b)
+        when check ctx u a;
+             true ->
+          subst x u b
+      | _ ->
+          raise
+            (Type_error
+               ("Mismatch in application : (" ^ to_string t ^ ":"
+              ^ to_string ttype ^ ") (" ^ to_string u ^ ":" ^ to_string utype
+              ^ ")")))
+
+and check ctx t a =
+  let b = infer ctx t in
+  if not (b = a) then
+    raise
+      (Type_error
+         (to_string t ^ " is of type " ^ to_string b ^ ", expected "
+        ^ to_string a))
+
+let%test_unit "type inference" =
+  let ctx =
+    [
+      ("Bool", (Type, None));
+      ("true", (Var "Bool", None));
+      ("false", (Var "Bool", None));
+    ]
+  in
+  check ctx (Var "false") (Var "Bool")
 
 let rec normalize ctx = function
   | Type -> Type
   | Var x -> Var x
-  | Abs (x, a, t) -> Abs (x, normalize ctx a, normalize ctx t)
-  | Pi (x, a, t) -> Pi (x, normalize ctx a, normalize ctx t)
+  | Abs (x, a, t) ->
+      Abs (x, normalize ctx a, normalize ((x, (a, None)) :: ctx) t)
+  | Pi (x, a, t) -> Pi (x, normalize ctx a, normalize ((x, (a, None)) :: ctx) t)
   | App (Abs (x, _a, t), u) ->
       subst x (normalize ctx u) (normalize ctx t)
       (* [normalize] should only be called in this case when [u:_a] *)
@@ -113,4 +153,5 @@ let rec normalize ctx = function
 
 let conv ctx t u = alpha (normalize ctx t) (normalize ctx u)
 
-exception Type_error of string
+(** tests for 𝝰𝝱-equivalence *)
+let ( =? ) = conv

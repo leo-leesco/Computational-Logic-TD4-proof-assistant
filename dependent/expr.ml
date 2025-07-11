@@ -22,8 +22,10 @@ let rec to_string = function
   | Type -> "Type"
   | Var x -> x
   | App (t, u) -> "(" ^ to_string t ^ " " ^ to_string u ^ ")"
-  | Abs (x, a, t) -> "󰘧 (" ^ x ^ " : " ^ to_string a ^ ") -> " ^ to_string t
-  | Pi (x, a, b) -> "𝚷 (" ^ x ^ " : " ^ to_string a ^ ") -> " ^ to_string b
+  | Abs (x, a, t) ->
+      "(󰘧 (" ^ x ^ " : " ^ to_string a ^ ") -> " ^ to_string t ^ ")"
+  | Pi (x, a, b) ->
+      "(𝚷 (" ^ x ^ " : " ^ to_string a ^ ") -> " ^ to_string b ^ ")"
 
 let%expect_test "Serialization of expressions" =
   let exp =

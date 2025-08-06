@@ -119,8 +119,9 @@ let rec infer ctx = function
           raise
             (Type_error
                ("Mismatch in application : (" ^ to_string t ^ ":"
-              ^ to_string ttype ^ ") (" ^ to_string u ^ ":" ^ to_string utype
-              ^ ")")))
+              ^ to_string ttype ^ ") (" ^ to_string u ^ ":"
+               ^ to_string (infer ctx u)
+               ^ ")")))
 
 and check ctx t a =
   let b = infer ctx t in

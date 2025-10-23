@@ -43,8 +43,8 @@ let%expect_test "Serialization of expressions" =
     Type
     x
     (t u)
-    󰘧 (a : A) -> (b c)
-    󰘧 (x : A) -> (B x)
+    (󰘧 (a : A) -> (b c))
+    (󰘧 (x : A) -> (B x))
     |}]
 
 let idx = ref 0

@@ -155,4 +155,7 @@ let rec normalize ctx = function
 let conv ctx t u = alpha (normalize ctx t) (normalize ctx u)
 
 (** tests for 𝝰𝝱-equivalence *)
-let ( =? ) = conv
+let ( =? ) = conv []
+
+let%test_unit "𝝰𝝱-equivalence" = ()
+(* essayer de montrer que (x -> xx)(y -> y) = (a -> a)(b -> b) = (x -> x) *)

@@ -1,6 +1,6 @@
 let () = Printexc.record_backtrace true
-let log = true
-let debug = false && log
+let log = false
+let debug = false
 
 open Expr
 module Expr = Expr
@@ -15,7 +15,8 @@ let rec subst x u = function
   | Abs (y, a, t) ->
       if debug then
         print_endline
-          (to_string (Abs (y, a, t)) ^ "[" ^ x ^ "↦" ^ to_string u ^ "]");
+          (to_string (Abs (y, a, t))
+          ^ if log then "[" ^ x ^ "↦" ^ to_string u ^ "]" else "");
       if y <> x then Abs (y, subst x u a, subst x u t)
       else
         let y' = fresh_var () in
@@ -27,7 +28,9 @@ let rec subst x u = function
         subst x u (Pi (y', subst y (Var y') a, subst y (Var y') t))
 
 let rec alpha t u =
-  if debug then print_endline ("𝝰:" ^ to_string t ^ " <> " ^ to_string u);
+  if debug then
+    print_endline
+      ((if log then "𝝰:" else "") ^ to_string t ^ " =? " ^ to_string u);
   match (t, u) with
   | Var x, Var y -> x = y
   | Abs (x, a, t), Abs (y, b, u) | Pi (x, a, t), Pi (y, b, u) ->
@@ -150,12 +153,26 @@ let rec normalize ctx = function
   | App (Abs (x, _a, t), u) ->
       subst x (normalize ctx u) (normalize ctx t)
       (* [normalize] should only be called in this case when [u:_a] *)
-  | App (t, u) -> App (normalize ctx t, normalize ctx u)
+  | App (t, u) -> normalize ctx (App (normalize ctx t, normalize ctx u))
 
 let conv ctx t u = alpha (normalize ctx t) (normalize ctx u)
 
 (** tests for 𝝰𝝱-equivalence *)
 let ( =? ) = conv []
 
-let%test_unit "𝝰𝝱-equivalence" = ()
-(* essayer de montrer que (x -> xx)(y -> y) = (a -> a)(b -> b) = (x -> x) *)
+let%test "𝝰𝝱-equivalence_basic" =
+  let idfun = Abs ("A", Type, Abs ("x", Var "A", Var "x")) in
+  let idfun1 = Abs ("B", Type, Abs ("y", Var "B", Var "y")) in
+  idfun =? idfun1
+
+let%test "𝝰𝝱-equivalence_dependent" =
+  let idsimple = Abs ("x", Var "A", Var "x") in
+  let iddependent = Abs ("A", Type, idsimple) in
+  let ctx = [ ("A", (Type, None)); ("x", (Var "A", None)) ] in
+
+  if debug then (
+    print_endline ("reducing: " ^ to_string iddependent);
+    print_endline ("context:\r" ^ string_of_context ctx));
+
+  conv ctx (App (idsimple, Var "x")) (Var "x")
+  && conv ctx (Var "x") (App (App (iddependent, Var "A"), Var "x"))

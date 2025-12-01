@@ -106,6 +106,23 @@ let%expect_test "Contexts" =
 
 exception Type_error of string
 
+let rec normalize ctx = function
+  | Type -> Type
+  | Var x -> ( try Option.get (snd (List.assoc x ctx)) with _ -> Var x)
+  | Abs (x, a, t) ->
+      Abs (x, normalize ctx a, normalize ((x, (a, None)) :: ctx) t)
+  | Pi (x, a, t) -> Pi (x, normalize ctx a, normalize ((x, (a, None)) :: ctx) t)
+  | App (Abs (x, _a, t), u) ->
+      subst x (normalize ctx u) (normalize ctx t)
+      (* [normalize] should only be called in this case when [u:_a] *)
+  | App (t, u) -> (
+      let t' = normalize ctx t in
+      match t' with
+      | Abs (_, _, _) -> normalize ctx (App (t', normalize ctx u))
+      | _ -> App (t', normalize ctx u))
+
+let conv ctx t u = alpha (normalize ctx t) (normalize ctx u)
+
 let rec infer ctx = function
   | Type -> Type
   | Var x -> fst (List.assoc x ctx)
@@ -128,7 +145,7 @@ let rec infer ctx = function
 
 and check ctx t a =
   let b = infer ctx t in
-  if not (b = a) then
+  if not (conv ctx a b) then
     raise
       (Type_error
          (to_string t ^ " is of type " ^ to_string b ^ ", expected "
@@ -144,19 +161,6 @@ let%test_unit "type inference" =
   in
   check ctx (Var "false") (Var "Bool")
 
-let rec normalize ctx = function
-  | Type -> Type
-  | Var x -> Var x
-  | Abs (x, a, t) ->
-      Abs (x, normalize ctx a, normalize ((x, (a, None)) :: ctx) t)
-  | Pi (x, a, t) -> Pi (x, normalize ctx a, normalize ((x, (a, None)) :: ctx) t)
-  | App (Abs (x, _a, t), u) ->
-      subst x (normalize ctx u) (normalize ctx t)
-      (* [normalize] should only be called in this case when [u:_a] *)
-  | App (t, u) -> normalize ctx (App (normalize ctx t, normalize ctx u))
-
-let conv ctx t u = alpha (normalize ctx t) (normalize ctx u)
-
 (** tests for 𝝰𝝱-equivalence *)
 let ( =? ) = conv []
 
@@ -164,6 +168,17 @@ let%test "𝝰𝝱-equivalence_basic" =
   let idfun = Abs ("A", Type, Abs ("x", Var "A", Var "x")) in
   let idfun1 = Abs ("B", Type, Abs ("y", Var "B", Var "y")) in
   idfun =? idfun1
+
+let%test "𝝰𝝱-equivalence_example" =
+  let ctx =
+    [
+      ("Bool", (Type, None));
+      ("true", (Var "Bool", None));
+      ("false", (Var "Bool", None));
+    ]
+  in
+  let idbool = Abs ("b", Var "Bool", Var "b") in
+  conv ctx (App (idbool, Var "true")) (Var "true")
 
 let%test "𝝰𝝱-equivalence_dependent" =
   let idsimple = Abs ("x", Var "A", Var "x") in

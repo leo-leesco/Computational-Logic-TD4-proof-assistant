@@ -1,6 +1,6 @@
 let () = Printexc.record_backtrace true
 let log = false
-let debug = false
+let debug = true
 
 open Expr
 module Expr = Expr
@@ -139,13 +139,17 @@ let rec normalize ctx = function
       | _ -> App (t', normalize ctx u))
   | Ind (p, z, s, n) -> (
       match normalize ctx n with
-      | Z -> normalize ctx z
+      | Z ->
+          if debug then print_endline "base case";
+          normalize ctx z
       | S m ->
+          if debug then print_endline "induction case";
           let s = normalize ctx s in
           let p = normalize ctx p in
           let z = normalize ctx z in
           normalize ctx (App (App (s, m), Ind (p, z, s, m)))
       | _ ->
+          if debug then print_endline "normalizing case";
           let s = normalize ctx s in
           let p = normalize ctx p in
           let z = normalize ctx z in

@@ -1,0 +1,4 @@
+define p = fun (n : Nat) -> Nat
+define z = Z
+define s = fun (n : Nat) -> fun (pn : p n) -> n
+define pred = Ind p z s

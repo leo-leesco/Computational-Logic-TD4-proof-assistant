@@ -9,10 +9,10 @@ type expr =
   | App of expr * expr
   | Abs of string * expr * expr
   | Pi of string * expr * expr
-(* | Nat *)
-(* | Z *)
-(* | S of expr *)
-(* | Ind of expr * expr * expr * expr *)
+  | Nat
+  | Z
+  | S of expr
+  | Ind of expr * expr * expr * expr
 (* | Eq of expr * expr *)
 (* | Refl of expr *)
 (* | J of expr * expr * expr * expr * expr *)
@@ -23,9 +23,17 @@ let rec to_string = function
   | Var x -> x
   | App (t, u) -> "(" ^ to_string t ^ " " ^ to_string u ^ ")"
   | Abs (x, a, t) ->
-      "(󰘧 (" ^ x ^ " : " ^ to_string a ^ ") -> " ^ to_string t ^ ")"
+      "(Λ (" ^ x ^ " : " ^ to_string a ^ ") -> " ^ to_string t ^ ")"
   | Pi (x, a, b) ->
-      "(𝚷 (" ^ x ^ " : " ^ to_string a ^ ") -> " ^ to_string b ^ ")"
+      "(Π (" ^ x ^ " : " ^ to_string a ^ ") -> " ^ to_string b ^ ")"
+  | Nat -> "ℕ"
+  | Z -> "0"
+  | S n -> (
+      try string_of_int (Option.get (int_of_string_opt (to_string n)) + 1)
+      with Invalid_argument _ -> "S (" ^ to_string n ^ ")")
+  | Ind (p, base, inductive, n) ->
+      "R (" ^ to_string p ^ ", " ^ to_string base ^ ", " ^ to_string inductive
+      ^ ", " ^ to_string n ^ ")"
 
 let%expect_test "Serialization of expressions" =
   let exp =
@@ -35,6 +43,17 @@ let%expect_test "Serialization of expressions" =
       App (Var "t", Var "u");
       Abs ("a", Var "A", App (Var "b", Var "c"));
       Abs ("x", Var "A", App (Var "B", Var "x"));
+      Pi ("A", Type, App (Var "A", Var "x"));
+      Abs ("f", Pi ("x", Var "A", App (Var "B", Var "x")), Var "f");
+      Nat;
+      Z;
+      S (S (S Z));
+      S (S (S (Var "x")));
+      Ind
+        ( Var "P",
+          App (Var "P", Z),
+          Abs ("n", Nat, App (Var "P", Var "n")),
+          Var "n" );
     ]
   in
   List.iter (fun x -> print_endline (to_string x)) exp;
@@ -43,8 +62,15 @@ let%expect_test "Serialization of expressions" =
     Type
     x
     (t u)
-    (󰘧 (a : A) -> (b c))
-    (󰘧 (x : A) -> (B x))
+    (Λ (a : A) -> (b c))
+    (Λ (x : A) -> (B x))
+    (Π (A : Type) -> (A x))
+    (Λ (f : (Π (x : A) -> (B x))) -> f)
+    ℕ
+    0
+    3
+    S (S (S (x)))
+    R (P, (P 0), (Λ (n : ℕ) -> (P n)), n)
     |}]
 
 let idx = ref 0

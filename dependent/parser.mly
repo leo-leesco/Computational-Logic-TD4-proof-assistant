@@ -22,7 +22,11 @@ expr:
   | FUN LPAR IDENT COLON expr RPAR TO expr              { Abs ($3, $5, $8) }
   | expr IMP expr                                       { Pi ("_", $1, $3) }
   | expr TO expr                                        { Pi ("_", $1, $3) }
-  | IND sexpr sexpr sexpr                               { Abs ("n", Nat, Ind ($2, $3, $4, "n")) }
+  | IND IDENT IDENT IDENT                               { let x = fresh_var () in
+  Abs (x, Nat, Ind (Var $2, Var $3, Var $4, Var x)) }
+  | IND IDENT IDENT IDENT IDENT                         { Ind (Var $2, Var $3, Var $4, Var $5) }
+  | IND sexpr sexpr sexpr                               { let x = fresh_var () in
+  Abs (x, Nat, Ind ($2, $3, $4, Var x)) }
   | IND sexpr sexpr sexpr sexpr                         { Ind ($2, $3, $4, $5) }
   | IND LPAR expr COMMA expr COMMA expr COMMA expr RPAR { Ind ($3, $5, $7, $9) }
 

@@ -16,7 +16,7 @@ let rec subst x u = function
   | Var y -> if x = y then u else Var y
   | App (t, t') -> App (subst x u t, subst x u t')
   | Abs (y, a, t) ->
-      if debug then
+      if log then
         print_endline
           (to_string (Abs (y, a, t))
           ^ if log then "[" ^ x ^ "↦" ^ to_string u ^ "]" else "");
@@ -43,10 +43,9 @@ let%test_unit "subst" =
     (Abs ("x1", Var "A", Var "x1"))
 
 let rec alpha t u =
-  if debug then
-    print_endline
-      ((if log then "α-comparison:" else "")
-      ^ to_string t ^ " =? " ^ to_string u);
+  if log then (
+    if debug then print_string "α-comparison:";
+    print_endline (to_string t ^ " =? " ^ to_string u));
   match (t, u) with
   | Var x, Var y -> x = y
   | Abs (x, a, t), Abs (y, b, u) | Pi (x, a, t), Pi (y, b, u) ->
@@ -125,7 +124,9 @@ let rec normalize ctx = function
   | Nat -> Nat
   | Z -> Z
   | S n -> S (normalize ctx n)
-  | Var x -> ( try Option.get (snd (List.assoc x ctx)) with _ -> Var x)
+  | Var x -> (
+      if log then print_endline ("trying to normalize " ^ x);
+      try normalize ctx (Option.get (snd (List.assoc x ctx))) with _ -> Var x)
   | Abs (x, a, t) ->
       Abs (x, normalize ctx a, normalize ((x, (a, None)) :: ctx) t)
   | Pi (x, a, t) -> Pi (x, normalize ctx a, normalize ((x, (a, None)) :: ctx) t)
@@ -133,28 +134,74 @@ let rec normalize ctx = function
       subst x (normalize ctx u) (normalize ctx t)
       (* [normalize] should only be called in this case when [u:_a] *)
   | App (t, u) -> (
+      if log then print_endline ("application : " ^ to_string (App (t, u)));
       let t' = normalize ctx t in
       match t' with
       | Abs (_, _, _) -> normalize ctx (App (t', normalize ctx u))
       | _ -> App (t', normalize ctx u))
   | Ind (p, z, s, n) -> (
-      match normalize ctx n with
+      match
+        let n = normalize ctx n in
+        if debug then print_endline (to_string n);
+        n
+      with
       | Z ->
           if debug then print_endline "base case";
           normalize ctx z
       | S m ->
           if debug then print_endline "induction case";
-          let s = normalize ctx s in
           let p = normalize ctx p in
+          if debug then print_endline ("predicate: " ^ to_string p);
           let z = normalize ctx z in
+          if debug then print_endline ("base value: " ^ to_string z);
+          let s = normalize ctx s in
+          if debug then print_endline ("successor: " ^ to_string s);
           normalize ctx (App (App (s, m), Ind (p, z, s, m)))
       | _ ->
           if debug then print_endline "normalizing case";
-          let s = normalize ctx s in
           let p = normalize ctx p in
           let z = normalize ctx z in
-          let n = normalize ctx n in
+          let s = normalize ctx s in
           Ind (p, z, s, n))
+
+let%test "normalize natural recursor" =
+  let ctx =
+    [
+      ("p", (Pi ("n", Nat, Type), Some (Abs ("n", Nat, S (Var "n")))));
+      ("z", (App (Var "p", Z), Some (S Z)));
+      ( "s",
+        ( Pi
+            ( "n",
+              Nat,
+              Pi ("pn", App (Var "p", Var "n"), App (Var "p", S (Var "n"))) ),
+          Some
+            (Abs ("n", Nat, Abs ("pn", App (Var "p", Var "n"), S (Var "pn"))))
+        ) );
+      ( "s1",
+        ( Pi ("n", Nat, Pi ("pn", Nat, App (Var "p", S (Var "n")))),
+          Some (Abs ("n", Nat, Abs ("pn", Nat, S (Var "pn")))) ) );
+      ( "spred",
+        ( Pi ("n", Nat, Pi ("pn", Nat, Nat)),
+          Some (Abs ("n", Nat, Abs ("pn", Nat, Var "n"))) ) );
+      ( "pred",
+        ( Pi ("n", Nat, Nat),
+          Some (Abs ("n", Nat, Ind (Var "p1", Z, Var "spred", Var "n"))) ) );
+    ]
+  in
+  normalize ctx (Ind (Var "p", Var "z", Var "s", S (S Z))) = S (S (S Z))
+  && normalize ctx (Ind (Var "p1", Var "z", Var "s", S (S Z))) = S (S (S Z))
+  && (let n = App (Var "pred", Z) in
+      if debug then print_endline ("normalizing:" ^ to_string n);
+      let n = normalize ctx n in
+      if debug then print_endline ("normalized: " ^ to_string n);
+      n)
+     = Z
+(* && (let n = App (Var "pred", S Z) in *)
+(*     if debug then print_endline ("normalizing:" ^ to_string n); *)
+(*     let n = normalize ctx n in *)
+(*     if debug then print_endline ("normalized: " ^ to_string n); *)
+(*     n) *)
+(*    = Z *)
 
 let conv ctx t u = alpha (normalize ctx t) (normalize ctx u)
 
@@ -162,7 +209,7 @@ let rec infer ctx = function
   | Type | Nat -> Type
   | Z -> Nat
   | S n ->
-      if infer ctx n = Nat then Nat
+      if infer ctx (normalize ctx n) = Nat then Nat
       else
         raise
           (Type_error
@@ -187,11 +234,12 @@ let rec infer ctx = function
                ^ ")")))
   | Ind (p, z, s, n) ->
       check ctx p (Pi ("x", Nat, Type));
-      check ctx z (App (p, Z));
+      check ctx z (normalize ctx (App (p, Z)));
       check ctx s
-        (Pi ("n", Nat, Pi ("pn", App (p, Var "n"), App (p, S (Var "n")))));
+        (normalize ctx
+           (Pi ("n", Nat, Pi ("pn", App (p, Var "n"), App (p, S (Var "n"))))));
       check ctx n Nat;
-      App (p, Var "n")
+      normalize ctx (App (p, Var "n"))
 
 and check ctx term typ =
   let b = infer ctx term in
@@ -252,10 +300,6 @@ let%test "αβ-equivalence_dependent" =
   let idsimple = Abs ("x", Var "A", Var "x") in
   let iddependent = Abs ("A", Type, idsimple) in
   let ctx = [ ("A", (Type, None)); ("x", (Var "A", None)) ] in
-
-  if debug then (
-    print_endline ("reducing: " ^ to_string iddependent);
-    print_endline ("context:\r" ^ string_of_context ctx));
 
   conv ctx (App (idsimple, Var "x")) (Var "x")
   && conv ctx (Var "x") (App (App (iddependent, Var "A"), Var "x"))

@@ -9,6 +9,9 @@ build:
 	dune build
 
 test: build
+	dune test
+
+run: build
 	@for p in $(PROOFS); do \
 	  echo ">> Running on $$p"; \
 	  cat "$$p" | "$(ROOT)/proving.exe"; \

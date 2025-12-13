@@ -1,7 +1,6 @@
-define ppred = fun (n : Nat) -> Nat
+define pnat = fun (n : Nat) -> Nat
 define spred = fun (n : Nat) -> fun (pn : Nat) -> n
-define pred = Ind ppred Z spred
+define pred = Ind pnat Z spred
 
-define padd = fun (n : Nat) -> Nat
-define sadd = fun (n : Nat) -> fun (pn : p n) -> S pn
-define add = fun (m : Nat) -> Ind p m sadd
+define sadd = fun (n : Nat) -> fun (pn : Nat) -> S pn
+define add = fun (m : Nat) -> Ind pnat m sadd

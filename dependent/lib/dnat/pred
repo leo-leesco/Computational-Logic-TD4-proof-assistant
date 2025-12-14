@@ -1,3 +1,2 @@
-define pnat = fun (n : Nat) -> Nat
 define spred = fun (n : Nat) -> fun (pn : Nat) -> n
 define pred = Ind pnat Z spred

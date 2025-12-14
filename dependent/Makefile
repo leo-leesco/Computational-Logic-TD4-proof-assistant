@@ -14,5 +14,8 @@ test: build
 	  cat "$$p" | "$(ROOT)/proving.exe"; \
 	done
 
+load:
+	cat lib/$(lib)/* - | "$(ROOT)/proving.exe"
+
 %:
 	cat proofs/$@.proof - | "$(ROOT)/proving.exe"

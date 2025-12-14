@@ -200,6 +200,30 @@ let%test_unit "normalize : implicit natural recursor ; predecessor" =
   [%test_eq: expr] (normalize ctx (App (Var "pred", S Z))) Z;
   [%test_eq: expr] (normalize ctx (App (Var "pred", S (S Z)))) (S Z)
 
+let%test_unit "normalize : implicit natural recursor ; addition" =
+  let ctx =
+    [
+      ("p", (Pi ("n", Nat, Type), Some (Abs ("n", Nat, Nat))));
+      ( "s",
+        ( Pi ("n", Nat, Pi ("pn", Nat, Nat)),
+          Some (Abs ("n", Nat, Abs ("pn", Nat, S (Var "pn")))) ) );
+      ( "add",
+        ( Pi ("n", Nat, Abs ("m", Nat, Nat)),
+          Some
+            (Abs
+               ( "n",
+                 Nat,
+                 Abs ("m", Nat, Ind (Var "p", Var "m", Var "s", Var "n")) )) )
+      );
+    ]
+  in
+  [%test_eq: expr] (normalize ctx (App (App (Var "add", Z), Z))) Z;
+  [%test_eq: expr] (normalize ctx (App (App (Var "add", Z), S Z))) (S Z);
+  [%test_eq: expr] (normalize ctx (App (App (Var "add", S Z), S Z))) (S (S Z));
+  [%test_eq: expr]
+    (normalize ctx (App (App (Var "add", S (S Z)), S Z)))
+    (S (S (S Z)))
+
 let conv ctx t u = alpha (normalize ctx t) (normalize ctx u)
 
 let rec infer ctx = function

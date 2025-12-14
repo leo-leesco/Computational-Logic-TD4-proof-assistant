@@ -13,9 +13,9 @@ type expr =
   | Z
   | S of expr
   | Ind of expr * expr * expr * expr
-(* | Eq of expr * expr *)
-(* | Refl of expr *)
-(* | J of expr * expr * expr * expr * expr *)
+  | Eq of expr * expr
+  | Refl of expr
+  | J of expr * expr * expr * expr * expr
 [@@deriving sexp, compare]
 
 let rec to_string = function
@@ -34,6 +34,11 @@ let rec to_string = function
   | Ind (p, base, inductive, n) ->
       "R (" ^ to_string p ^ ", " ^ to_string base ^ ", " ^ to_string inductive
       ^ ", " ^ to_string n ^ ")"
+  | Eq (t, u) -> "(" ^ to_string t ^ " = " ^ to_string u ^ ")"
+  | Refl t -> "(refl(" ^ to_string t ^ "))"
+  | J (p, r, x, y, e) ->
+      "J (" ^ to_string p ^ ", " ^ to_string r ^ ", " ^ to_string x ^ ", "
+      ^ to_string y ^ ", " ^ to_string e ^ ")"
 
 let%expect_test "Serialization of expressions" =
   let exp =
@@ -54,6 +59,18 @@ let%expect_test "Serialization of expressions" =
           App (Var "P", Z),
           Abs ("n", Nat, App (Var "P", Var "n")),
           Var "n" );
+      J
+        ( Abs
+            ( "x",
+              Var "A",
+              Pi ("y", Var "A", Pi ("_", Eq (Var "x", Var "y"), Type)) ),
+          Abs
+            ( "x",
+              Var "A",
+              App (App (App (Var "P", Var "x"), Var "x"), Refl (Var "x")) ),
+          Var "x",
+          Var "y",
+          Var "e" );
     ]
   in
   List.iter (fun x -> print_endline (to_string x)) exp;

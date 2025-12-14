@@ -28,6 +28,10 @@ let rec subst x u = function
         let y' = fresh_var () in
         subst x u (Pi (y', subst y (Var y') a, subst y (Var y') t))
   | Ind (p, z, s, n) -> Ind (subst x u p, subst x u z, subst x u s, subst x u n)
+  | Eq (t, t') -> Eq (subst x u t, subst x u t')
+  | Refl t -> Refl (subst x u t)
+  | J (p, r, x', y, e) ->
+      J (subst x u p, subst x u r, subst x u x', subst x u y, subst x u e)
 
 let%test_unit "subst" =
   [%test_eq: expr] (subst "x" (Var "y") (Var "x")) (Var "y");
@@ -152,6 +156,18 @@ let rec normalize ctx = function
           let z = normalize ctx z in
           let s = normalize ctx s in
           Ind (p, z, s, n))
+  | J (p, r, x, y, e) -> (
+      match normalize ctx e with
+      | Refl z when z = x -> App (normalize ctx r, normalize ctx x)
+      | e ->
+          J
+            ( normalize ctx p,
+              normalize ctx r,
+              normalize ctx x,
+              normalize ctx y,
+              e ))
+  | Eq (x, y) -> Eq (normalize ctx x, normalize ctx y)
+  | Refl x -> Refl (normalize ctx x)
 
 let%test "normalize : explicit natural recursor" =
   let ctx =
@@ -263,6 +279,27 @@ let rec infer ctx = function
            (Pi ("n", Nat, Pi ("pn", App (p, Var "n"), App (p, S (Var "n"))))));
       check ctx n Nat;
       normalize ctx (App (p, Var "n"))
+  | Eq (t, u) ->
+      if infer ctx t = infer ctx u then Type
+      else
+        raise
+          (Type_error ("Tried to compare" ^ to_string t ^ " and " ^ to_string u))
+  | Refl x -> Eq (x, x)
+  | J (p, r, x, y, e) ->
+      check ctx p
+        (Pi
+           ( "x",
+             Var "A",
+             Pi ("y", Var "A", Pi ("e", Eq (Var "x", Var "y"), Type)) ));
+      check ctx r
+        (Pi ("x", Var "A", App (App (App (p, Var "x"), Var "x"), Refl (Var "x"))));
+      let a = infer ctx x in
+      check ctx y a;
+      check ctx e (Eq (x, y));
+      App (App (App (p, x), y), e)
+(* match p with *)
+(*   | Pi (x',a,Pi (y',a',Pi(_,Eq(x'',y''),Type))) when a =? a' && x' =? x'' && y' =? y'' -> check ctx x a; check ctx y a; check e (Eq(x,y)); *)
+(*   match  *)
 
 and check ctx term typ =
   let b = infer ctx term in

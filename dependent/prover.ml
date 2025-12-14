@@ -221,6 +221,9 @@ let%test_unit "normalize : implicit natural recursor ; addition" =
   [%test_eq: expr] (normalize ctx (App (App (Var "add", Z), S Z))) (S Z);
   [%test_eq: expr] (normalize ctx (App (App (Var "add", S Z), S Z))) (S (S Z));
   [%test_eq: expr]
+    (normalize ctx (App (App (Var "add", S (S Z)), S (S (S Z)))))
+    (S (S (S (S (S Z)))));
+  [%test_eq: expr]
     (normalize ctx (App (App (Var "add", S (S Z)), S Z)))
     (S (S (S Z)))
 

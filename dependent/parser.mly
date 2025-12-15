@@ -26,9 +26,11 @@ expr:
   Abs (x, Nat, Ind (Var $2, Var $3, Var $4, Var x)) }
   | IND IDENT IDENT IDENT IDENT                         { Ind (Var $2, Var $3, Var $4, Var $5) }
   | IND sexpr sexpr sexpr                               { let x = fresh_var () in
-  Abs (x, Nat, Ind ($2, $3, $4, Var x)) }
+                                                          Abs (x, Nat, Ind ($2, $3, $4, Var x)) }
   | IND sexpr sexpr sexpr sexpr                         { Ind ($2, $3, $4, $5) }
   | IND LPAR expr COMMA expr COMMA expr COMMA expr RPAR { Ind ($3, $5, $7, $9) }
+  | J sexpr sexpr sexpr sexpr sexpr                     { J ($2, $3, $4, $5, $6) }
+  | J LPAR expr COMMA expr COMMA expr COMMA expr COMMA expr RPAR { J ($3, $5, $7, $9, $11) }
 
 /* An application */
 aexpr:
@@ -44,3 +46,5 @@ sexpr:
   | N                               { Nat }
   | Z                               { Z }
   | S expr                          { S $2 }
+  | expr EQ expr                    { Eq ($1, $3)}
+  | REFL expr                       { Refl $2 }

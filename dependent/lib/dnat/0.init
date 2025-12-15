@@ -1,1 +1,3 @@
 define pnat = fun (n : Nat) -> Nat
+
+define psucc = fun (x : Nat) -> fun (y : Nat) -> fun (e : x = y)

@@ -29,7 +29,6 @@ expr:
                                                           Abs (x, Nat, Ind ($2, $3, $4, Var x)) }
   | IND sexpr sexpr sexpr sexpr                         { Ind ($2, $3, $4, $5) }
   | IND LPAR expr COMMA expr COMMA expr COMMA expr RPAR { Ind ($3, $5, $7, $9) }
-  | J sexpr sexpr sexpr sexpr sexpr                     { J ($2, $3, $4, $5, $6) }
   | J LPAR expr COMMA expr COMMA expr COMMA expr COMMA expr RPAR { J ($3, $5, $7, $9, $11) }
 
 /* An application */

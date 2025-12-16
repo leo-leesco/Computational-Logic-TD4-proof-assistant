@@ -1,5 +1,5 @@
 let () = Printexc.record_backtrace true
-let log = true
+let log = false
 let debug = false && log
 
 open Expr
@@ -239,10 +239,17 @@ let%test_unit "Parsing natural constructors" =
 
 let%test_unit "Parsing add" =
   let add =
-    tm_of_string
-      "(fun (x : Nat) -> (fun (y : Nat) -> rec(y, x, (fun (ym1 : Nat) -> (fun \
-       (xpym1 : Nat) -> succ( xpym1 ))))))"
+    Fn
+      ( "x",
+        Nat,
+        Fn
+          ( "y",
+            Nat,
+            Rec
+              ( "y",
+                Var "x",
+                Fn ("ym1", Nat, Fn ("xpym1", Nat, Succ (Var "xpym1"))) ) ) )
   in
   log_tm add;
   log_ty (infer_type add);
-  check_type add Nat
+  check_type (App (App (add, Zero), Zero)) Nat

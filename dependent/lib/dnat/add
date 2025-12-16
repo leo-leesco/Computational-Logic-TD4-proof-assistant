@@ -1,2 +1,6 @@
+hide
+
 define sadd = fun (n : Nat) -> fun (pn : Nat) -> S pn
 define add = fun (m : Nat) -> Ind pnat m sadd
+
+show

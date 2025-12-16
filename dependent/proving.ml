@@ -7,7 +7,12 @@ let debug = false
 let () =
   let env = ref [] in
   let loop = ref true in
-  let file = open_out "interactive.proof" in
+  let print = ref true in
+
+  let file =
+    open_out
+      (try Array.get Sys.argv 1 with Invalid_argument _ -> "interactive.proof")
+  in
   let split c s =
     try
       let n = String.index s c in
@@ -17,7 +22,7 @@ let () =
   in
   while !loop do
     try
-      print_string "? ";
+      if !print then print_string "? ";
       flush_all ();
       let cmd, arg =
         let cmd = input_line stdin in
@@ -31,14 +36,15 @@ let () =
           let a = of_string sa in
           check !env a Type;
           env := (x, (a, None)) :: !env;
-          print_endline (x ^ " assumed of type " ^ to_string a)
+          if !print then print_endline (x ^ " assumed of type " ^ to_string a)
       | "define" ->
           let x, st = split '=' arg in
           let t = of_string st in
           let a = infer !env t in
           env := (x, (a, Some t)) :: !env;
-          print_endline
-            (x ^ " defined to " ^ to_string t ^ " of type " ^ to_string a)
+          if !print then
+            print_endline
+              (x ^ " defined to " ^ to_string t ^ " of type " ^ to_string a)
       | "context" -> print_endline (string_of_context !env)
       | "type" ->
           let t = of_string arg in
@@ -54,13 +60,16 @@ let () =
           let t = of_string arg in
           let _ = infer !env t in
           print_endline (to_string (normalize !env t))
+      | "hide" -> print := false
+      | "show" -> print := true
       | "exit" -> loop := false
       | "" | "#" -> ()
       | cmd -> print_endline ("Unknown command: " ^ cmd)
     with
     | End_of_file -> loop := false
-    | Failure err -> print_endline ("Error: " ^ err ^ ".")
-    | Type_error err -> print_endline ("Typing error :" ^ err ^ ".")
+    | Failure err -> if !print then print_endline ("Error: " ^ err ^ ".")
+    | Type_error err ->
+        if !print then print_endline ("Typing error :" ^ err ^ ".")
     | Parsing.Parse_error -> print_endline "Parsing error."
   done;
   print_endline "Bye."

@@ -14,8 +14,11 @@ test: build
 	  cat "$$p" | "$(ROOT)/proving.exe"; \
 	done
 
-load: build
-	cat lib/$(lib)/* - | "$(ROOT)/proving.exe"
-
 %:
-	cat proofs/$@.proof - | "$(ROOT)/proving.exe"
+	touch proofs/$@.proof
+ifdef lib
+	cat lib/$(lib)/* proofs/$@.proof - | "$(ROOT)/proving.exe" proofs/$@.proof
+else
+	cat proofs/$@.proof - | "$(ROOT)/proving.exe" proofs/$@.proof
+endif
+	sed -i '' "/hide/,/show/d" proofs/$@.proof

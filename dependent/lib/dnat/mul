@@ -1,2 +1,6 @@
+hide
+
 define smul = fun (m : Nat) -> fun (n : Nat) -> fun (pn : Nat) -> add m pn
 define mul = fun (m : Nat) -> Ind pnat Z (smul m)
+
+show

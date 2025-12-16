@@ -1,6 +1,6 @@
 ROOT = $(shell dune exec ./get_cwd.exe)
 
-PROOFS = $(wildcard proofs/*.proof)
+PROOFS = $(wildcard proofs/*)
 
 all: build
 	"$(ROOT)/proving.exe"
@@ -15,10 +15,10 @@ test: build
 	done
 
 %:
-	touch proofs/$@.proof
+	touch proofs/$@
 ifdef lib
-	cat lib/$(lib)/* proofs/$@.proof - | "$(ROOT)/proving.exe" proofs/$@.proof
+	cat lib/$(lib)/* proofs/$@ - | "$(ROOT)/proving.exe" proofs/$@
 else
-	cat proofs/$@.proof - | "$(ROOT)/proving.exe" proofs/$@.proof
+	cat proofs/$@ - | "$(ROOT)/proving.exe" proofs/$@
 endif
-	sed -i '' "/hide/,/show/d" proofs/$@.proof
+	sed -i '' "/hide/,/show/d" proofs/$@

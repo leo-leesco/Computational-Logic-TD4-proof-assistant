@@ -1,10 +1,3 @@
-hide
-
-# prove that Succ is compatible with Eq
 define psucc = fun (a : Nat) -> fun (b : Nat) -> fun (e : a = b) -> (S a) = (S b)
 define rsucc = fun (x : Nat) -> Refl (S x)
 define Seq = fun (x : Nat) -> fun (y : Nat) -> fun (e : x = y) -> J psucc rsucc x y e
-
-# prove that 
-
-show

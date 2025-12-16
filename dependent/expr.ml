@@ -88,6 +88,7 @@ let%expect_test "Serialization of expressions" =
     3
     S (S (S (x)))
     R (P, (P 0), (Λ (n : ℕ) -> (P n)), n)
+    J ((Λ (x : A) -> (Π (y : A) -> (Π (_ : (x = y)) -> Type))), (Λ (x : A) -> (((P x) x) (refl(x)))), x, y, e)
     |}]
 
 let idx = ref 0

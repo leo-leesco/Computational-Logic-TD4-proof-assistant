@@ -57,25 +57,28 @@ let rec alpha t u =
         && alpha (subst x (Var x') t) (subst y (Var x') u)
   | Ind (p, z, s, n), Ind (q, z', s', m) ->
       alpha p q && alpha n m && alpha z z' && alpha s s'
-  | App (t, u), App (t', u') -> alpha t t' && alpha u u'
-  | S n, S m -> alpha n m
+  | J (p, r, x, y, e), J (q, s, x', y', e') ->
+      alpha p q && alpha r s && alpha x x' && alpha y y' && alpha e e'
+  | App (t, u), App (t', u') | Eq (t, u), Eq (t', u') ->
+      alpha t t' && alpha u u'
+  | S n, S m | Refl n, Refl m -> alpha n m
   | Type, Type | Nat, Nat | Z, Z -> true
   | _, _ -> false
 
 let%test "var1 α-equiv" = alpha (Var "x") (Var "x")
 let%test "var2 α-equiv" = not (alpha (Var "x") (Var "y"))
 
-let%test "abs α-equiv" =
+let%test "abs1 α-equiv" =
   alpha (Abs ("y", Var "A", Var "y")) (Abs ("x", Var "A", Var "x"))
 
-let%test "abs α-equiv" =
+let%test "abs2 α-equiv" =
   alpha
     (Abs
        ("x", Var "A", App (Var "x", Abs ("x", Var "A", App (Var "x", Var "y")))))
     (Abs
        ("z", Var "A", App (Var "z", Abs ("x", Var "A", App (Var "x", Var "y")))))
 
-let%test "abs α-equiv" =
+let%test "abs3 α-equiv" =
   not
     (alpha
        (Abs
@@ -92,10 +95,10 @@ let%test "subst α-equiv" =
     (subst "x" (Var "y") (Abs ("x", Var "A", Var "x")))
     (Abs ("x", Var "A", Var "x"))
 
-let%test "subst in Nat α-equiv" =
+let%test "subst1 in Nat α-equiv" =
   alpha (S (S (S Z))) (subst "x" (S (S Z)) (S (Var "x")))
 
-let%test "subst in Nat α-equiv" =
+let%test "subst2 in Nat α-equiv" =
   not (alpha (S (S (S Z))) (subst "x" Z (S (Var "x"))))
 
 type context = (string * (expr * expr option)) list
@@ -286,15 +289,12 @@ let rec infer ctx = function
           (Type_error ("Tried to compare" ^ to_string t ^ " and " ^ to_string u))
   | Refl x -> Eq (x, x)
   | J (p, r, x, y, e) ->
-      check ctx p
-        (Pi
-           ( "x",
-             Var "A",
-             Pi ("y", Var "A", Pi ("e", Eq (Var "x", Var "y"), Type)) ));
-      check ctx r
-        (Pi ("x", Var "A", App (App (App (p, Var "x"), Var "x"), Refl (Var "x"))));
       let a = infer ctx x in
       check ctx y a;
+      check ctx p
+        (Pi ("x", a, Pi ("y", a, Pi ("e", Eq (Var "x", Var "y"), Type))));
+      check ctx r
+        (Pi ("x", a, App (App (App (p, Var "x"), Var "x"), Refl (Var "x"))));
       check ctx e (Eq (x, y));
       App (App (App (p, x), y), e)
 (* match p with *)
@@ -337,6 +337,27 @@ let%test_unit "type inference : Nat" =
   in
   check ctx (Ind (Var "p", Var "z", Var "s", Var "n")) (App (Var "p", Var "n"))
 
+let%test_unit "type inference : Eq2" =
+  let ctx =
+    [
+      ( "psucc",
+        ( Pi ("x", Nat, Pi ("y", Nat, Pi ("e", Eq (Var "x", Var "y"), Type))),
+          Some
+            (Abs
+               ( "x",
+                 Nat,
+                 Abs
+                   ( "y",
+                     Nat,
+                     Abs
+                       ( "e",
+                         Eq (Var "x", Var "y"),
+                         Eq (S (Var "x"), S (Var "y")) ) ) )) ) );
+    ]
+  in
+  check ctx (Var "psucc")
+    (Pi ("x", Nat, Pi ("y", Nat, Pi ("e", Eq (Var "x", Var "y"), Type))))
+
 let%test "α-equivalence : polymorphic identity" =
   let idfun = Abs ("A", Type, Abs ("x", Var "A", Var "x")) in
   let idfun1 = Abs ("B", Type, Abs ("y", Var "B", Var "y")) in
@@ -378,3 +399,37 @@ let%test "αβ-equivalence : natural recursor" =
     ]
   in
   conv ctx (Ind (Var "p", Var "z", Var "s", Var "n")) (S (S (S Z)))
+
+let%test "αβ-equivalence : Eq1" =
+  let ctx = [ ("A", (Type, None)) ] in
+  conv ctx
+    (Abs ("x", Type, Eq (Var "x", Var "A")))
+    (Abs ("y", Type, Eq (Var "y", Var "A")))
+
+let%test "type inference : Eq2" =
+  let ctx =
+    [
+      ( "psucc",
+        ( Pi ("x", Nat, Pi ("y", Nat, Pi ("e", Eq (Var "x", Var "y"), Type))),
+          Some
+            (Abs
+               ( "x",
+                 Nat,
+                 Abs
+                   ( "y",
+                     Nat,
+                     Abs
+                       ( "e",
+                         Eq (Var "x", Var "y"),
+                         Eq (S (Var "x"), S (Var "y")) ) ) )) ) );
+    ]
+  in
+  conv ctx (Var "psucc")
+    (Abs
+       ( "x",
+         Nat,
+         Abs
+           ( "y",
+             Nat,
+             Abs ("e", Eq (Var "x", Var "y"), Eq (S (Var "x"), S (Var "y"))) )
+       ))

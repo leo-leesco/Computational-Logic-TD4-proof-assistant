@@ -11,7 +11,8 @@ let () =
 
   let file =
     open_out
-      (try Array.get Sys.argv 1 with Invalid_argument _ -> "interactive.proof")
+      (try Array.get Sys.argv 1
+       with Invalid_argument _ -> "proofs/interactive")
   in
   let split c s =
     try

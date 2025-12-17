@@ -168,14 +168,13 @@ let () =
           let _ = infer !env t in
           print_endline (to_string (normalize !env t))
       | "prove" -> (
-          let x, sa = split ':' arg in
+          let x, sa = split '=' arg in
           let a = of_string sa in
           try
             let def = prove !env a in
             check !env def a;
             env := (x, (a, Some def)) :: !env
-          with Break -> ()
-          | )
+          with Break -> ())
       | "hide" -> print := false
       | "show" -> print := true
       | "exit" -> loop := false

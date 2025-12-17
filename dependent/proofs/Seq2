@@ -1,0 +1,24 @@
+hide
+
+define pnat = fun (n : Nat) -> Nat
+
+show
+hide
+
+define sadd = fun (n : Nat) -> fun (pn : Nat) -> S pn
+define add = fun (m : Nat) -> Ind pnat m sadd
+
+show
+hide
+
+define smul = fun (m : Nat) -> fun (n : Nat) -> fun (pn : Nat) -> add m pn
+define mul = fun (m : Nat) -> Ind pnat Z (smul m)
+
+show
+hide
+
+define spred = fun (n : Nat) -> fun (pn : Nat) -> n
+define pred = Ind pnat Z spred
+
+show
+prove Seq = Pi (x : Nat) -> Pi (y : Nat) -> Pi (e : x = y) -> (S x) = (S y)

@@ -248,6 +248,7 @@ let%test_unit "normalize : implicit natural recursor ; addition" =
 
 let conv ctx t u = alpha (normalize ctx t) (normalize ctx u)
 
+(** @raise Type_error *)
 let rec infer ctx = function
   | Type | Nat -> Type
   | Z -> Nat
@@ -297,10 +298,12 @@ let rec infer ctx = function
         (Pi ("x", a, App (App (App (p, Var "x"), Var "x"), Refl (Var "x"))));
       check ctx e (Eq (x, y));
       App (App (App (p, x), y), e)
+
 (* match p with *)
 (*   | Pi (x',a,Pi (y',a',Pi(_,Eq(x'',y''),Type))) when a =? a' && x' =? x'' && y' =? y'' -> check ctx x a; check ctx y a; check e (Eq(x,y)); *)
 (*   match  *)
 
+(** @raise Type_error *)
 and check ctx term typ =
   let b = infer ctx term in
   if not (conv ctx typ b) then

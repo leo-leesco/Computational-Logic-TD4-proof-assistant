@@ -15,6 +15,9 @@ test: build
 	done
 
 %:
+ifdef clean
+	rm -f proofs/$@
+endif
 	touch proofs/$@
 ifdef lib
 	cat lib/$(lib)/* proofs/$@ - | "$(ROOT)/proving.exe" proofs/$@

@@ -47,12 +47,11 @@ let rec infer_type ?(ctx : context = []) = function
   | Succ n ->
       check_type ~ctx n Nat;
       Nat
-  | Rec (sn, init, Fn (n, Nat, Fn (prev_value, a, t)))
-    when log_ctx ctx;
-         check_type ~ctx (Var sn) Nat;
-         check_type ~ctx:((n, Nat) :: (prev_value, a) :: ctx) t a;
-         check_type ~ctx init a;
-         true ->
+  | Rec (sn, init, Fn (n, Nat, Fn (prev_value, a, t))) ->
+      log_ctx ctx;
+      check_type ~ctx (Var sn) Nat;
+      check_type ~ctx:((n, Nat) :: (prev_value, a) :: ctx) t a;
+      check_type ~ctx init a;
       a
   | _ ->
       log_ctx ctx;

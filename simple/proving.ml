@@ -122,5 +122,5 @@ let () =
   if t = a then print_endline "ok."
   else
     print_endline
-      ("Got (a well-formed type) " ^ string_of_ty t ^ " instead of "
+      ("Got " ^ string_of_ty t ^ ", a well-formed type, instead of "
      ^ string_of_ty a)

@@ -7,6 +7,10 @@ let debug = false
 let loop = ref true
 let print = ref true
 
+let file =
+  open_out
+    (try Array.get Sys.argv 1 with Invalid_argument _ -> "proofs/interactive")
+
 let split c s =
   try
     let n = String.index s c in
@@ -16,17 +20,25 @@ let split c s =
 
 exception Break
 
+type local_context = (string * expr) list
+
+let to_env = List.map (fun (x, a) -> (x, (a, None)))
+
+let string_of_context ctx =
+  List.map (fun (x, a) -> x ^ ": " ^ to_string a) ctx |> String.concat ", "
+
 (** @raise Break *)
-let rec prove goal =
-  print_endline ("⊢ " ^ to_string goal);
+let rec prove (ctx : local_context) goal =
+  print_endline (string_of_context ctx ^ " ⊢ " ^ to_string goal);
   print_string "? ";
   flush_all ();
   let error e =
     print_endline e;
-    prove goal
+    prove ctx goal
   in
   let cmd, arg =
     let cmd = input_line stdin in
+    output_string file (cmd ^ "\n");
     let n = try String.index cmd ' ' with Not_found -> String.length cmd in
     let c = String.sub cmd 0 n in
     let a = String.sub cmd n (String.length cmd - n) in
@@ -38,64 +50,51 @@ let rec prove goal =
       match goal with
       | Pi (x, a, b) ->
           let x = if arg <> "" then arg else x in
-          env := (x, (a, None)) :: !env;
-          let t = prove b in
-          Abs (x, a, t)
-      | Nat ->
-          if arg = "" then error "Please provide an argument for intro."
-          else (
-            env := (arg, (Nat, None)) :: !env;
-            S (prove Nat))
+          Abs (x, a, prove ((x, a) :: ctx) b)
       | _ -> error "Don't know how to introduce this.")
-  | "exact" -> (
-      match goal with
-      | Nat when arg = "" -> Z
-      | _ ->
-          let t = of_string arg in
-          if infer !env t <> goal then error "Not the right type." else t)
+  | "exact" ->
+      let t = of_string arg in
+      if infer (!env @ to_env ctx) t <> goal then error "Not the right type."
+      else t
   | "elim" -> (
       if arg = "" then error "Please provide an argument for elim."
       else
-        match fst (List.assoc arg !env) with
+        match List.assoc arg ctx with
         | Pi (_x, a, b) ->
             if b <> goal then
               error "This arrow codomain does not match the current goal"
-            else
-              let u = prove a in
-              App (Var arg, u)
+            else App (Var arg, prove ctx a)
         | Nat ->
-            let p =
-              print_endline "Reuse an existing predicate ? [y/n]";
-              if input_line stdin = "n" then (
-                print_endline "name the predicate p : Π(n : Nat) -> Type";
-                let pname = input_line stdin in
-                let ptype = Pi (arg, Nat, Type) in
-                let p = prove ptype in
-                env := (pname, (ptype, Some p)) :: !env;
-                p)
-              else (
-                print_endline (string_of_context !env);
-                try Option.get (snd (List.assoc (input_line stdin) !env)) with
-                | Not_found -> error "There is no such variable in the context"
-                | _ -> error "something else")
-            in
+            (*
+                récurrence sur `arg` 
+                p : la propriété à montrer est celle par récurrence (qui contient `arg`)
+                z : il faut donner la preuve de l'initialisation
+              *)
+            let p = Abs (arg, Nat, goal) in
             Ind
               ( p,
-                prove (App (p, Z)),
-                prove
-                  (Pi
-                     ( arg,
-                       Nat,
-                       Pi
-                         ( (print_endline "name the value of the previous case";
-                            input_line stdin),
-                           App (p, Var arg),
-                           App (p, S (Var arg)) ) )),
+                prove ctx
+                  (print_endline ("Base case on " ^ arg ^ " :");
+                   normalize (to_env ctx) (App (p, Z))),
+                prove ctx
+                  (print_endline ("Induction case on " ^ arg ^ " :");
+                   normalize (to_env ctx)
+                     (Pi
+                        ( arg,
+                          Nat,
+                          Pi
+                            ( (print_endline
+                                 "name the value of the previous case";
+                               let pn = input_line stdin in
+                               output_string file (pn ^ "\n");
+                               pn),
+                              App (p, Var arg),
+                              App (p, S (Var arg)) ) ))),
                 Var arg )
         | Eq (t, u) ->
-            let a = infer !env t in
-            let a' = infer !env u in
-            if not (conv !env a a') then
+            let a = infer (to_env ctx) t in
+            let a' = infer (to_env ctx) u in
+            if not (conv (to_env ctx) a a') then
               error
                 ("Trying to eliminate a non-homogeneous equation, between \
                   types " ^ to_string a ^ " and " ^ to_string a')
@@ -103,9 +102,9 @@ let rec prove goal =
               print_endline
                 "name the predicate p : Π(x y : A, e : x = y) -> Type";
               let pname = input_line stdin in
-              print_endline "name x : ";
+              print_endline "name x :";
               let xname = input_line stdin in
-              print_endline "name y : ";
+              print_endline "name y :";
               let yname = input_line stdin in
               let ptype =
                 Pi
@@ -113,7 +112,7 @@ let rec prove goal =
                     a,
                     Pi (yname, a', Pi (arg, Eq (Var xname, Var yname), Type)) )
               in
-              let p = prove ptype in
+              let p = prove ctx ptype in
               env := (pname, (ptype, Some p)) :: !env;
               let rtype =
                 Pi
@@ -122,7 +121,7 @@ let rec prove goal =
                     App (App (App (p, Var xname), Var xname), Refl (Var xname))
                   )
               in
-              J (p, prove rtype, t, u, prove (Eq (t, u))))
+              J (p, prove ctx rtype, t, u, prove ctx (Eq (t, u))))
         | _ -> error "Don't know how to eliminate this.")
   | "cut" ->
       if arg = "" then error "Please provide an argument for cut."
@@ -130,19 +129,12 @@ let rec prove goal =
         print_endline "Please provide a name for your lemma";
         let lemma_name = input_line stdin in
         let subgoal = of_string arg in
-        App (prove (Pi (lemma_name, subgoal, goal)), prove subgoal))
-  | "context" ->
-      print_endline (string_of_context !env);
-      prove goal
+        App (prove ctx (Pi (lemma_name, subgoal, goal)), prove ctx subgoal))
+  | "context" -> error (string_of_context ctx)
   | "abort" -> raise Break
   | cmd -> error ("Unknown command: " ^ cmd)
 
 let () =
-  let file =
-    open_out
-      (try Array.get Sys.argv 1
-       with Invalid_argument _ -> "proofs/interactive")
-  in
   while !loop do
     try
       if !print then print_string "? ";
@@ -168,7 +160,7 @@ let () =
           if !print then
             print_endline
               (x ^ " defined to " ^ to_string t ^ " of type " ^ to_string a)
-      | "context" -> print_endline (string_of_context !env)
+      | "context" -> print_endline (Prover.string_of_context !env)
       | "type" ->
           let t = of_string arg in
           let a = infer !env t in
@@ -187,8 +179,11 @@ let () =
           let x, sa = split '=' arg in
           let a = of_string sa in
           try
-            let def = prove a in
+            let def = prove [] a in
             check !env def a;
+            if !print then
+              print_endline
+                (x ^ " defined to " ^ to_string def ^ " of type " ^ to_string a);
             env := (x, (a, Some def)) :: !env
           with Break -> ())
       | "hide" -> print := false

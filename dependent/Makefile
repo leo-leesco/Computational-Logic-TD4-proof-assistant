@@ -24,14 +24,9 @@ ifdef clean
 endif
 	touch proofs/$@
 ifdef lib
-	echo (echo "#start
-	hide";
-	cat lib/$(lib)/* proofs/$@;
-	echo "show
-	#end"
-	) - | "$(ROOT)/proving.exe" proofs/$@
+	cat lib/start lib/$(lib)/* lib/end proofs/$@ - | "$(ROOT)/proving.exe" proofs/$@
 else
 	cat proofs/$@ - | "$(ROOT)/proving.exe" proofs/$@
 endif
-	sed -i '' "/#start/,/#end/d" proofs/$@
+	sed -i '' "/# start/,/# end/d" proofs/$@
 	sed -i '' "/exit/d" proofs/$@

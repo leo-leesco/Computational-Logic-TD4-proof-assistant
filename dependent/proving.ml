@@ -123,7 +123,7 @@ let rec prove (ctx : local_context) goal =
               let rtype =
                 Pi (x, a, App (App (App (p, Var x), Var x), Refl (Var x)))
               in
-              J (p, prove ctx rtype, t, u, etype)
+              J (p, prove ctx rtype, t, u, Var arg)
         | _ -> error "Don't know how to eliminate this.")
   | "cut" ->
       if arg = "" then error "Please provide an argument for cut."

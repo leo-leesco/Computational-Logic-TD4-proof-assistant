@@ -1,5 +1,1 @@
-hide
-
 define pnat = fun (n : Nat) -> Nat
-
-show

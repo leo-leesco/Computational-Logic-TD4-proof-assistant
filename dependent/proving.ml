@@ -29,22 +29,23 @@ let string_of_context ctx =
 
 (** @raise Break *)
 let rec prove (ctx : local_context) goal =
-  print_endline (string_of_context ctx ^ " ⊢ " ^ to_string goal);
-  print_string "? ";
-  flush_all ();
+  let goal = normalize (to_env ctx) goal in
+
   let error e =
     print_endline e;
     prove ctx goal
   in
+
+  print_endline (string_of_context ctx ^ " ⊢ " ^ to_string goal);
+  print_string "? ";
+  flush_all ();
+
   let cmd, arg =
     let cmd = input_line stdin in
     output_string file (cmd ^ "\n");
-    let n = try String.index cmd ' ' with Not_found -> String.length cmd in
-    let c = String.sub cmd 0 n in
-    let a = String.sub cmd n (String.length cmd - n) in
-    let a = String.trim a in
-    (c, a)
+    split ' ' cmd
   in
+
   match cmd with
   | "intro" -> (
       match goal with
@@ -59,6 +60,7 @@ let rec prove (ctx : local_context) goal =
   | "elim" -> (
       if arg = "" then error "Please provide an argument for elim."
       else
+        let arg, params = split ' ' arg in
         match List.assoc arg ctx with
         | Pi (_x, a, b) ->
             if b <> goal then
@@ -75,53 +77,53 @@ let rec prove (ctx : local_context) goal =
               ( p,
                 prove ctx
                   (print_endline ("Base case on " ^ arg ^ " :");
-                   normalize (to_env ctx) (App (p, Z))),
+                   App (p, Z)),
                 prove ctx
                   (print_endline ("Induction case on " ^ arg ^ " :");
-                   normalize (to_env ctx)
-                     (Pi
-                        ( arg,
-                          Nat,
-                          Pi
-                            ( (print_endline
-                                 "name the value of the previous case";
-                               let pn = input_line stdin in
-                               output_string file (pn ^ "\n");
-                               pn),
-                              App (p, Var arg),
-                              App (p, S (Var arg)) ) ))),
+                   Pi
+                     ( arg,
+                       Nat,
+                       Pi
+                         ( (print_endline "name the value of the previous case";
+                            let pn = input_line stdin in
+                            output_string file (pn ^ "\n");
+                            pn),
+                           App (p, Var arg),
+                           App (p, S (Var arg)) ) )),
                 Var arg )
-        | Eq (t, u) ->
+        | Eq (t, u) as etype ->
+            (*
+               récurrence sur `arg` (c'est-à-dire en supposant que )
+               p : la propriété à montrer 
+             *)
+            let t = normalize (to_env ctx) t in
+            let u = normalize (to_env ctx) u in
             let a = infer (to_env ctx) t in
             let a' = infer (to_env ctx) u in
             if not (conv (to_env ctx) a a') then
               error
                 ("Trying to eliminate a non-homogeneous equation, between \
                   types " ^ to_string a ^ " and " ^ to_string a')
-            else (
-              print_endline
-                "name the predicate p : Π(x y : A, e : x = y) -> Type";
-              let pname = input_line stdin in
-              print_endline "name x :";
-              let xname = input_line stdin in
-              print_endline "name y :";
-              let yname = input_line stdin in
-              let ptype =
-                Pi
-                  ( xname,
-                    a,
-                    Pi (yname, a', Pi (arg, Eq (Var xname, Var yname), Type)) )
+            else
+              let x, y =
+                let x, y = split ' ' params in
+
+                ( (if x = "" then (
+                     print_endline "name x :";
+                     input_line stdin)
+                   else x),
+                  if y = "" then (
+                    print_endline "name y :";
+                    input_line stdin)
+                  else y )
               in
-              let p = prove ctx ptype in
-              env := (pname, (ptype, Some p)) :: !env;
+
+              let p = Abs (x, a, Abs (y, a, Abs (arg, etype, goal))) in
+
               let rtype =
-                Pi
-                  ( xname,
-                    a,
-                    App (App (App (p, Var xname), Var xname), Refl (Var xname))
-                  )
+                Pi (x, a, App (App (App (p, Var x), Var x), Refl (Var x)))
               in
-              J (p, prove ctx rtype, t, u, prove ctx (Eq (t, u))))
+              J (p, prove ctx rtype, t, u, etype)
         | _ -> error "Don't know how to eliminate this.")
   | "cut" ->
       if arg = "" then error "Please provide an argument for cut."
@@ -180,10 +182,10 @@ let () =
           let a = of_string sa in
           try
             let def = prove [] a in
-            check !env def a;
             if !print then
               print_endline
                 (x ^ " defined to " ^ to_string def ^ " of type " ^ to_string a);
+            check !env def a;
             env := (x, (a, Some def)) :: !env
           with Break -> ())
       | "hide" -> print := false

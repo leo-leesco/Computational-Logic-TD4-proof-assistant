@@ -1,0 +1,13 @@
+prove add = Pi (n : Nat) -> Pi (m : Nat) -> Nat
+intro
+intro
+elim n
+mn1
+intro
+intro
+exact S mn1
+exact m
+eval add Z Z
+eval add Z S S Z
+eval add S S Z S Z
+eval add S S S S S Z S Z

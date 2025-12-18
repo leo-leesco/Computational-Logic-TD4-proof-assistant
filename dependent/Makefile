@@ -25,3 +25,4 @@ else
 	cat proofs/$@ - | "$(ROOT)/proving.exe" proofs/$@
 endif
 	sed -i '' "/hide/,/show/d" proofs/$@
+	sed -i '' "/exit/d" proofs/$@

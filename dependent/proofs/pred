@@ -1,0 +1,12 @@
+prove pred = Pi (n : Nat) -> Nat
+intro
+elim n
+pn
+intro
+intro
+exact n
+exact Z
+context
+context
+eval pred Z
+eval pred (S (S (S Z)))

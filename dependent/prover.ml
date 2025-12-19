@@ -334,10 +334,6 @@ let rec infer ctx = function
       check ctx e (Eq (x, y));
       App (App (App (p, x), y), e)
 
-(* match p with *)
-(*   | Pi (x',a,Pi (y',a',Pi(_,Eq(x'',y''),Type))) when a =? a' && x' =? x'' && y' =? y'' -> check ctx x a; check ctx y a; check e (Eq(x,y)); *)
-(*   match  *)
-
 (** @raise Type_error *)
 and check ctx term typ =
   let b = infer ctx term in

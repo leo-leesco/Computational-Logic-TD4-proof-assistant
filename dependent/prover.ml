@@ -1,6 +1,4 @@
 let () = Printexc.record_backtrace true
-(* let log = false *)
-(* let debug = true *)
 
 open Expr
 module Expr = Expr
@@ -46,7 +44,7 @@ let rec subst x u = function
   | Abs (y, a, t) ->
       (* print_endline *)
       (*   (to_string (Abs (y, a, t)) ^ "[" ^ x ^ "↦" ^ to_string u ^ "]"); *)
-      if y <> x && StringSet.mem y (free_variables u) then
+      if y <> x && not (StringSet.mem y (free_variables u)) then
         Abs (y, subst x u a, subst x u t)
       else
         let y' = fresh_var () in

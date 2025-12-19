@@ -16,7 +16,7 @@ let split c s =
     let n = String.index s c in
     ( String.trim (String.sub s 0 n),
       String.trim (String.sub s (n + 1) (String.length s - (n + 1))) )
-  with Not_found -> (s, "")
+  with Not_found -> (String.trim s, "")
 
 exception Break
 exception Proof_error of string

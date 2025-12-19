@@ -1,0 +1,14 @@
+hide
+show
+hide
+show
+prove addassoc = Pi (x : Nat) -> Pi (y : Nat) -> Pi (z : Nat) -> (add x (add y z)) = add (add x y) z
+
+intro
+intro
+intro
+elim z
+eqxyz
+intro
+intro
+exact Seq ((add x) ((add y) z)) ((add ((add x) y)) z) (((add x) ((add y) z)) = ((add ((add x) y)) z))

@@ -7,6 +7,34 @@ module Expr = Expr
 
 let of_string s = Parser.expr Lexer.token (Lexing.from_string s)
 
+module OrderedStrings = struct
+  type t = string
+
+  let compare = Stdlib.compare
+end
+
+module StringSet = Set.Make (OrderedStrings)
+
+type variables = StringSet.t
+
+(** apart from the binding constructions (λ(x:A).y and Π(x:A).B), free variables
+    are the union of the free variables of the subexpressions *)
+let rec free_variables = function
+  | Type | Nat | Z -> StringSet.empty
+  | Var x -> StringSet.singleton x
+  | App (t, u) | Eq (t, u) ->
+      StringSet.union (free_variables t) (free_variables u)
+  | Abs (x, a, t) | Pi (x, a, t) ->
+      StringSet.union (free_variables a)
+        (StringSet.diff (free_variables t) (StringSet.singleton x))
+  | S n | Refl n -> free_variables n
+  | Ind (p, z, s, n) ->
+      List.fold_left StringSet.union StringSet.empty
+        (List.map free_variables [ p; z; s; n ])
+  | J (p, r, x, y, e) ->
+      List.fold_left StringSet.union StringSet.empty
+        (List.map free_variables [ p; r; x; y; e ])
+
 (** [subst x u e] is [e[u/x]], meaning [x] is replaced by [u] in [e] *)
 let rec subst x u = function
   | Type -> Type
@@ -18,12 +46,14 @@ let rec subst x u = function
   | Abs (y, a, t) ->
       (* print_endline *)
       (*   (to_string (Abs (y, a, t)) ^ "[" ^ x ^ "↦" ^ to_string u ^ "]"); *)
-      if y <> x then Abs (y, subst x u a, subst x u t)
+      if y <> x && StringSet.mem y (free_variables u) then
+        Abs (y, subst x u a, subst x u t)
       else
         let y' = fresh_var () in
         subst x u (Abs (y', subst y (Var y') a, subst y (Var y') t))
   | Pi (y, a, t) ->
-      if y <> x then Pi (y, subst x u a, subst x u t)
+      if y <> x && StringSet.mem y (free_variables u) then
+        Pi (y, subst x u a, subst x u t)
       else
         let y' = fresh_var () in
         subst x u (Pi (y', subst y (Var y') a, subst y (Var y') t))

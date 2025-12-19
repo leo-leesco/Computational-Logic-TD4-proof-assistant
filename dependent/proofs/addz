@@ -1,0 +1,3 @@
+prove addz = Pi (n : Nat) -> add n Z = n
+intro
+exact Refl n

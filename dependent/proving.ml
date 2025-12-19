@@ -19,6 +19,7 @@ let split c s =
   with Not_found -> (s, "")
 
 exception Break
+exception Proof_error of string
 
 type local_context = (string * expr) list
 
@@ -36,8 +37,8 @@ let rec prove (ctx : local_context) goal =
     prove ctx goal
   in
 
-  print_endline (string_of_context ctx ^ " ⊢ " ^ to_string goal);
-  print_string "? ";
+  if !print then print_endline (string_of_context ctx ^ " ⊢ " ^ to_string goal);
+  if !print then print_string "? ";
   flush_all ();
 
   let cmd, arg =
@@ -55,13 +56,21 @@ let rec prove (ctx : local_context) goal =
       | _ -> error "Don't know how to introduce this.")
   | "exact" ->
       let t = of_string arg in
-      if infer (!env @ to_env ctx) t <> goal then error "Not the right type."
-      else t
+      let ttyp = infer (to_env ctx @ !env) t in
+      if conv (to_env ctx @ !env) ttyp goal then t
+      else error "Not the right type."
   | "elim" -> (
       if arg = "" then error "Please provide an argument for elim."
       else
         let arg, params = split ' ' arg in
-        match List.assoc arg ctx with
+        match
+          try List.assoc arg ctx
+          with Not_found ->
+            print_endline
+              ("could not find " ^ arg ^ " in context : "
+             ^ string_of_context ctx);
+            raise Break
+        with
         | Pi (_x, a, b) ->
             if b <> goal then
               error "This arrow codomain does not match the current goal"
@@ -76,15 +85,18 @@ let rec prove (ctx : local_context) goal =
             Ind
               ( p,
                 prove ctx
-                  (print_endline ("Base case on " ^ arg ^ " :");
+                  (if !print then print_endline ("Base case on " ^ arg ^ " :");
                    App (p, Z)),
                 prove ctx
-                  (print_endline ("Induction case on " ^ arg ^ " :");
+                  (if !print then
+                     print_endline ("Induction case on " ^ arg ^ " :");
                    Pi
                      ( arg,
                        Nat,
                        Pi
-                         ( (print_endline "name the value of the previous case";
+                         ( (if !print then
+                              print_endline
+                                "name the value of the previous case";
                             let pn = input_line stdin in
                             output_string file (pn ^ "\n");
                             pn),
@@ -98,9 +110,9 @@ let rec prove (ctx : local_context) goal =
              *)
             let t = normalize (to_env ctx) t in
             let u = normalize (to_env ctx) u in
-            let a = infer (to_env ctx) t in
-            let a' = infer (to_env ctx) u in
-            if not (conv (to_env ctx) a a') then
+            let a = infer (to_env ctx @ !env) t in
+            let a' = infer (to_env ctx @ !env) u in
+            if not (conv (to_env ctx @ !env) a a') then
               error
                 ("Trying to eliminate a non-homogeneous equation, between \
                   types " ^ to_string a ^ " and " ^ to_string a')
@@ -109,11 +121,11 @@ let rec prove (ctx : local_context) goal =
                 let x, y = split ' ' params in
 
                 ( (if x = "" then (
-                     print_endline "name x :";
+                     if !print then print_endline "name x :";
                      input_line stdin)
                    else x),
                   if y = "" then (
-                    print_endline "name y :";
+                    if !print then print_endline "name y :";
                     input_line stdin)
                   else y )
               in
@@ -128,13 +140,14 @@ let rec prove (ctx : local_context) goal =
   | "cut" ->
       if arg = "" then error "Please provide an argument for cut."
       else (
-        print_endline "Please provide a name for your lemma";
+        if !print then print_endline "Please provide a name for your lemma";
         let lemma_name = input_line stdin in
         let subgoal = of_string arg in
         App (prove ctx (Pi (lemma_name, subgoal, goal)), prove ctx subgoal))
   | "context" -> error (string_of_context ctx)
+  | "" | "#" -> prove ctx goal
   | "abort" -> raise Break
-  | cmd -> error ("Unknown command: " ^ cmd)
+  | cmd -> error ("Unknown command: '" ^ cmd ^ "'")
 
 let () =
   while !loop do
@@ -162,21 +175,22 @@ let () =
           if !print then
             print_endline
               (x ^ " defined to " ^ to_string t ^ " of type " ^ to_string a)
-      | "context" -> print_endline (Prover.string_of_context !env)
+      | "env" -> if !print then print_endline (Prover.string_of_context !env)
       | "type" ->
           let t = of_string arg in
           let a = infer !env t in
-          print_endline (to_string t ^ " is of type " ^ to_string a)
+          if !print then
+            print_endline (to_string t ^ " is of type " ^ to_string a)
       | "check" ->
           let t, a = split '=' arg in
           let t = of_string t in
           let a = of_string a in
           check !env t a;
-          print_endline "Ok."
+          if !print then print_endline "Ok."
       | "eval" ->
           let t = of_string arg in
           let _ = infer !env t in
-          print_endline (to_string (normalize !env t))
+          if !print then print_endline (to_string (normalize !env t))
       | "prove" -> (
           let x, sa = split '=' arg in
           let a = of_string sa in

@@ -259,7 +259,13 @@ let rec infer ctx = function
           (Type_error
              (to_string n
             ^ " is not a natural number, but tried to take its successor"))
-  | Var x -> fst (List.assoc x ctx)
+  | Var x -> (
+      try fst (List.assoc x ctx)
+      with Not_found ->
+        raise
+          (Type_error
+             ("tried to infer the type of " ^ x ^ " in context :\n"
+            ^ string_of_context ctx)))
   | Abs (x, a, t) -> Pi (x, a, infer ((x, (a, None)) :: ctx) t)
   | Pi (_, _, _) -> Type
   | App (t, u) -> (

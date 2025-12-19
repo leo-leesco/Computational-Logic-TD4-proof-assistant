@@ -48,9 +48,10 @@ let rec subst x u = function
         Abs (y, subst x u a, subst x u t)
       else
         let y' = fresh_var () in
+        print_endline y';
         subst x u (Abs (y', subst y (Var y') a, subst y (Var y') t))
   | Pi (y, a, t) ->
-      if y <> x && StringSet.mem y (free_variables u) then
+      if y <> x && not (StringSet.mem y (free_variables u)) then
         Pi (y, subst x u a, subst x u t)
       else
         let y' = fresh_var () in

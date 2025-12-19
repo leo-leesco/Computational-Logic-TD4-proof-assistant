@@ -1,5 +1,4 @@
 prove addassoc = Pi (x : Nat) -> Pi (y : Nat) -> Pi (z : Nat) -> (add x (add y z)) = add (add x y) z
-
 intro
 intro
 intro

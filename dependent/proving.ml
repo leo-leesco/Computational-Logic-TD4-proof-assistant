@@ -54,11 +54,12 @@ let rec prove (ctx : local_context) goal =
           let x = if arg <> "" then arg else x in
           Abs (x, a, prove ((x, a) :: ctx) b)
       | _ -> error "Don't know how to introduce this.")
-  | "exact" ->
+  | "exact" -> (
       let t = of_string arg in
-      let ttyp = infer (to_env ctx @ !env) t in
-      if conv (to_env ctx @ !env) ttyp goal then t
-      else error "Not the right type."
+      try
+        check (to_env ctx @ !env) t goal;
+        t
+      with Type_error e -> error (to_string t ^ " is not of type " ^ e))
   | "elim" -> (
       if arg = "" then error "Please provide an argument for elim."
       else

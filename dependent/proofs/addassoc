@@ -6,4 +6,5 @@ elim z
 eqxyz
 intro
 intro
-exact Seq ((add x) ((add y) z)) ((add ((add x) y)) z) (((add x) ((add y) z)) = ((add ((add x) y)) z))
+exact Seq ((add x) ((add y) z)) ((add ((add x) y)) z) eqxyz
+exact Refl (add x y)

@@ -1,0 +1,3 @@
+check Type : Type
+check Type = Type
+prove id = Pi (A : Type) -> Type

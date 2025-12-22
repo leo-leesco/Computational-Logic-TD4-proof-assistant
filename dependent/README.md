@@ -56,13 +56,10 @@ You will need :
 - `OCaML` (tested with `ocaml@4.14.2`)
 - `opam`
 - `dune`
-- `ppx_expect`
+- `ppx_expect` (relies on `sexplib`)
 
-Here is a proposed install script (there is no guarantee anything will work if other versions are used) :
 ```bash
-opam switch create . ocaml-base-compiler.4.14.2
-opam install . --locked
-opam install dune
+make install
 ```
 
 ## Tests

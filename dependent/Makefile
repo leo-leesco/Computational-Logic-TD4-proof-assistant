@@ -8,6 +8,10 @@ all: build
 build:
 	dune build
 
+install:
+	opam switch create . ocaml-base-compiler.4.14.2
+	opam install . --deps-only
+
 test: build
 	@for p in $(TESTS); do \
 		echo; \

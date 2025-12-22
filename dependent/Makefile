@@ -17,6 +17,7 @@ test: build
 
 # you can provide various arguments :
 # 	- clean=1 : the proof you are trying to make is overwritten
+# 	- lib=<libraries> : scripts in <libraries> are imported
 %:
 ifdef clean
 	rm -f proofs/$@

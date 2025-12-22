@@ -1,6 +1,6 @@
 _build
-report/report.pdf
+report.pdf
 *~
 stl-full.svg
 .DS_Store
-dependent/interactive.proof
+*.zip

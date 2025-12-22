@@ -1,6 +1,7 @@
 ROOT = $(shell dune exec ./get_cwd.exe)
 
 TESTS = $(wildcard tests/*)
+DEPS = $(wildcard *.opam.locked)
 
 all: build
 	"$(ROOT)/proving.exe"
@@ -10,7 +11,11 @@ build:
 
 install:
 	opam switch create . ocaml-base-compiler.4.14.2
-	opam install . --deps-only
+
+install_test:
+	@for deps in $(DEPS); do \
+		opam install ./$$deps --deps-only; \
+	done
 
 test: build
 	@for p in $(TESTS); do \

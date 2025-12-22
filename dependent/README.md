@@ -23,17 +23,32 @@ We use `make` for this project, in various ways :
 ### Inside the interaction loop
 
 You can execute the following commands :
-- `context` prints the current context
+- `environment` prints the global context
 - `assume <ident> : <type>` adds `<ident>` of type `<type>` to the global context
 - `define <ident> = <expr>` adds `<ident>` defined as `<expr>` to the global context, the type is automatically inferred
 - `type <expr>` returns the type of `<expr>`
 - `check <expr> = <type>` prints `Ok.` if `<expr>` is indeed of type `<type>`, or prints at which point in the type evaluation a subexpression diverged from what was expected
 - `eval <expr>` returns a normalized version of `<expr>`
 - `prove <ident> = <type>` enters proof mode, and upon success adds the term built (to prove the `<type>`) to the context
+- `exit` gracefully stops the prover (it is useful as `make <file>` has clean-up commands running after the execution of the prover)
 
 ### Inside the prover
 
-When in proof mode (see the [previous paragraph](#inside-the-interaction-loop))
+When in proof mode (see the [previous paragraph](#inside-the-interaction-loop)), you can run [`Rocq`-like tactics](https://rocq-prover.org/doc/V8.0/doc/Reference-Manual010.html) :
+- `context` prints the local context
+- `environment` prints the global context
+- `exact <expr>` concludes the proof _iff_ `<expr>` type matches (in the local context of the function) the current goal
+- `elim <ident> <args>` applies elimination tactics to `<ident>` in the local context, depending on the type of `<ident>` :
+    - `A -> B` : if `B` is the goal, `A` is left to prove
+    - `Nat` : starts a proof by induction on `<ident>`. If `<args>` is provided, its type is the induction hypothesis.
+    - `x = y` : starts a proof by (structural) induction on `<ident>`. If `<args>` is provided, it is split (on whitespaces) up to two times, and represent :
+        - `<arg1>` represents `x`
+        - `<arg2>` represents `y`
+    <!-- If `<args>` is provided, and `p <ident>` is the predicate we are trying to prove over induction on `<ident>`, `<args>` is the induction -->
+- `intro [<ident>]`
+    - `(x : A) -> B` or `A -> B` : introduces `x` if no `<ident>` is provided, or `<ident> : A`, in the context
+- `cut <type>` requires to first prove the lemma `<type>` and then asks to prove `<type> -> goal` (which basically amounts to adding `<type>` to the context)
+- `abort` returns to the [interaction loop](#inside-the-interaction-loop)
 
 ## Installation
 

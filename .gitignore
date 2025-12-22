@@ -1,4 +1,5 @@
 _build
+_opam
 report.pdf
 *~
 stl-full.svg

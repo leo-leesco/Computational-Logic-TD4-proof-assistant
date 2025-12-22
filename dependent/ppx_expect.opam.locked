@@ -1,6 +1,6 @@
 opam-version: "2.0"
 name: "ppx_expect"
-version: "v0.16.1"
+version: "v0.16.2"
 synopsis: "Cram like framework for OCaml"
 description: "Part of the Jane Street's PPX rewriters collection."
 maintainer: "Jane Street developers"
@@ -16,8 +16,8 @@ depends: [
   "base-threads" {= "base"}
   "base-unix" {= "base"}
   "csexp" {= "1.5.2"}
-  "dune" {= "3.19.0"}
-  "dune-configurator" {= "3.19.0"}
+  "dune" {= "3.20.2"}
+  "dune-configurator" {= "3.20.2"}
   "jane-street-headers" {= "v0.16.0"}
   "jst-config" {= "v0.16.0"}
   "ocaml" {= "4.14.2"}
@@ -38,8 +38,7 @@ depends: [
   "ppx_optcomp" {= "v0.16.0"}
   "ppx_sexp_conv" {= "v0.16.0"}
   "ppxlib" {= "0.35.0"}
-  "re" {= "1.12.0"}
-  "seq" {= "base"}
+  "re" {= "1.14.0"}
   "sexplib0" {= "v0.16.0"}
   "stdio" {= "v0.16.0"}
   "stdlib-shims" {= "0.3.0"}
@@ -48,6 +47,6 @@ depends: [
 conflicts: [
   "js_of_ocaml-compiler" {< "5.8"}
 ]
-available: arch != "x86_32"
+available: arch != "arm32" & arch != "x86_32"
 build: ["dune" "build" "-p" name "-j" jobs]
 dev-repo: "git+https://github.com/janestreet/ppx_expect.git"

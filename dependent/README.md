@@ -12,6 +12,10 @@ We use `make` for this project, in various ways :
 - `make build` is `dune build`
 - `make` alone enters in interactive mode and writes to `proofs/interactive`
 - `make test` runs all files in `tests/` independently
+- `make <file> [<OPTIONS>]` will :
+    - write to `proofs/<file>`
+    - if `--clean=1` is given, the file is first erased before being written to, otherwise (meaning `--clean` is not set, the value of `clean` is not compared against) the script is first executed and subsequent commands are appended to it 
+    - if `lib=<libraries>` is given, the scripts described by `lib/<libraries>` are first run before you can input more commands. `<libraries>` is an arbitrary string that `ls` (`cat` actually) can read.
 
 ## Installation
 

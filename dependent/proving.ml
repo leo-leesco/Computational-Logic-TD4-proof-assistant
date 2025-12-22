@@ -38,7 +38,7 @@ let rec prove (ctx : local_context) goal =
   in
 
   if !print then print_endline (string_of_context ctx ^ " ⊢ " ^ to_string goal);
-  if !print then print_string "? ";
+  if !print then print_string "|> ";
   flush_all ();
 
   let cmd, arg =
@@ -82,6 +82,7 @@ let rec prove (ctx : local_context) goal =
                 p : la propriété à montrer est celle par récurrence (qui contient `arg`)
                 z : il faut donner la preuve de l'initialisation
               *)
+            let arg, pn = split ' ' arg in
             let p = Abs (arg, Nat, goal) in
             Ind
               ( p,
@@ -95,12 +96,14 @@ let rec prove (ctx : local_context) goal =
                      ( arg,
                        Nat,
                        Pi
-                         ( (if !print then
-                              print_endline
-                                "name the value of the previous case";
-                            let pn = input_line stdin in
-                            output_string file (pn ^ "\n");
-                            pn),
+                         ( (if pn = "" then (
+                              if !print then
+                                print_endline
+                                  "name the value of the previous case";
+                              let pn = input_line stdin in
+                              output_string file (pn ^ "\n");
+                              pn)
+                            else pn),
                            App (p, Var arg),
                            App (p, S (Var arg)) ) )),
                 Var arg )
@@ -146,6 +149,7 @@ let rec prove (ctx : local_context) goal =
         let subgoal = of_string arg in
         App (prove ctx (Pi (lemma_name, subgoal, goal)), prove ctx subgoal))
   | "context" -> error (string_of_context ctx)
+  | "environment" -> error (Prover.string_of_context !env)
   | "" | "#" -> prove ctx goal
   | "abort" -> raise Break
   | cmd -> error ("Unknown command: '" ^ cmd ^ "'")

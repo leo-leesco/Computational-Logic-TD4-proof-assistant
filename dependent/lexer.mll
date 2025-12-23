@@ -8,17 +8,21 @@ let space = ' ' | '\t' | '\r'
 rule token = parse
   | "fun"    { FUN }
   | "λ"      { FUN }
+  | "Λ"      { FUN }
   | "Pi"     { PI }
   | "Π"      { PI }
   | "Type"   { TYPE }
   | "Nat"    { NAT }
   | "ℕ"      { NAT }
   | "Z"      { Z }
+  | "0"      { Z }
   | "S"      { S }
+  | "R"      { IND }
   | "Ind"    { IND }
   | "="      { EQ }
   | "≡"      { EQ }
   | "Refl"   { REFL }
+  | "refl"   { REFL }
   | "J"      { J }
   | "("      { LPAR }
   | ")"      { RPAR }
